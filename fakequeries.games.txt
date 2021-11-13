@@ -1,0 +1,47 @@
+"Games"
+{
+    "csgo"
+    {
+        "Addresses"
+        {
+            "g_pSteamSocketMgr"
+            {
+                "signature" "NET_ReceiveRawPacket"
+
+                "windows"
+                {
+                    "read"      "42"
+                }
+                
+                "linux"
+                {
+                    "read"      "38"
+                    "read"      "0"
+                }
+            }
+        }
+        "Signatures"
+        {	
+            "NET_ReceiveRawPacket"  // Str: "%s sent invalid %d-byte message (max is %d)\n"
+            {
+                "library"   "engine"
+                "linux"     "\x55\x89\xE5\x57\x89\xCF\x56\x53\x81\xEC\xCC\x00\x00\x00"
+                "windows"   "\x55\x8B\xEC\x81\xEC\x5C\x03\x00\x00\x53"
+            }
+        }
+        "Offsets"
+        {
+            "CSteamSocketMgr::recvfrom"
+            {
+                "windows"   "6"
+                "linux"     "6"
+            }
+            
+            "CSteamSocketMgr::sendto"
+            {
+                "windows"   "5"
+                "linux"     "5"
+            }
+        }
+    }
+}
