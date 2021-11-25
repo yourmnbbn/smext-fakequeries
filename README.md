@@ -13,7 +13,7 @@ Allows you to change the following part in A2S_INFO response.
 - Max number of clients.
 - Number of fake clients.
 - OS information.
-- VAC status of the server0
+- VAC status of the server.
 - Game version.
 - Server tag.  
 
