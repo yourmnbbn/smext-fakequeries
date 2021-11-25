@@ -157,7 +157,7 @@ bool CReturnA2sPlayer::GetPlayerStatus(int iClientIndex, PlayerInfo_t& info)
     if(pInfo)
         info.playTime = pInfo->GetTimeConnected();
     else
-        info.playTime = 0.f;
+        info.playTime = Plat_FloatTime();
     
     //Get player score
     CBaseEntity* pEntity = GetResourceEntity();
