@@ -180,7 +180,7 @@ void CReturnA2sPlayer::BuildCommunicationFrame()
     m_replyPacket.WriteByte(m_TotalClientsCount > 64 ? 64 : m_TotalClientsCount);
     
     //Loop real clients
-    for(int i = 1; i <= maxClients; i++)
+    for(int i = 1; i <= playerhelpers->GetMaxClients(); i++)
     {
         PlayerInfo_t info;
         
