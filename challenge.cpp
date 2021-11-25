@@ -18,8 +18,8 @@ void ChallengeManager::RunFrame()
     {
         m_TimeRecord = time;
 
-        m_unCurrentChallenge = GenerateChallenge();
         m_unLastChallenge = m_unCurrentChallenge;
+        m_unCurrentChallenge = GenerateChallenge();
     }
 }
 
