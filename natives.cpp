@@ -237,6 +237,20 @@ void CReturnA2sPlayer::BuildCommunicationFrame()
     }
 }
 
+void CReturnA2sPlayer::BuildEngineDefaultFrame()
+{
+    int maxClients = g_ReturnA2sInfo.GetMaxClients();
+
+    m_replyPacket.Reset();
+
+    m_replyPacket.WriteLong(-1);        //0xFFFFFFFF
+    m_replyPacket.WriteByte(68);        //A2S_PLAYER response header
+    m_replyPacket.WriteByte(1);
+    m_replyPacket.WriteByte(0);
+    m_replyPacket.WriteString("Max Players");
+    m_replyPacket.WriteLong(maxClients);
+    m_replyPacket.WriteFloat(Plat_FloatTime());
+}
 
 void CReturnA2sInfo::ResetA2sInfo()
 {

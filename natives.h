@@ -60,6 +60,7 @@ public:
     CBaseEntity* GetResourceEntity();
     
     virtual void BuildCommunicationFrame();
+    void BuildEngineDefaultFrame();
     bool RemoveFakePlayer(uint8_t index);
     void SetFakePlayerDisplayNum(uint8_t number){ m_FakePlayerDisplayNum = number; }
     

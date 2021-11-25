@@ -104,11 +104,22 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
         if(!g_ReturnA2sPlayer.IsValidRequest(buf) && !g_ReturnA2sPlayer.IsOfficialRequest(buf))
             RETURN_META_VALUE(MRES_SUPERCEDE, -1);
         
-        //Build return message frame
-        g_ReturnA2sPlayer.BuildCommunicationFrame();
-        
-        //Send fake packet
-        g_ReturnA2sPlayer.SendTo(s, 0, from);
+        switch(g_pCvar->FindVar("host_players_show")->GetInt())
+        {
+            case 2:
+                {
+                    g_ReturnA2sPlayer.BuildCommunicationFrame();
+                    g_ReturnA2sPlayer.SendTo(s, 0, from);
+                    break;
+                }
+            case 1:
+                {
+                    g_ReturnA2sPlayer.BuildEngineDefaultFrame();
+                    g_ReturnA2sPlayer.SendTo(s, 0, from);
+                    break;
+                }
+            default : break;
+        }
 
         RETURN_META_VALUE(MRES_SUPERCEDE, -1);
     }
