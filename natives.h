@@ -20,15 +20,28 @@ class CReturnHandle
 {
 public:
     CReturnHandle()
-        :m_replyPacket(m_replyStore, 2048)
+        :m_replyPacket(m_replyStore, 2048), m_bDefaultChallengeNumber(true)
     {
     }
     
     virtual void BuildCommunicationFrame() = 0;
-    
     virtual const char* GetCommunicationFramePtr() {return (const char *)m_replyPacket.GetData();}
     virtual int GetNumBytesWritten() {return m_replyPacket.GetNumBytesWritten();}
     
+    virtual void BuildChallengeResponse()
+    {
+        if(m_bDefaultChallengeNumber)
+        {
+            m_ChallengeNumber = g_ChallengeManager.GetCurrentChallenge();
+        }
+        
+        m_replyPacket.Reset();
+        
+        m_replyPacket.WriteLong(-1);
+        m_replyPacket.WriteByte(0x41); 
+        m_replyPacket.WriteLong(m_ChallengeNumber); 
+    }
+
     virtual void SendTo(int s, int flags, sockaddr* from)
     {
         extern void* g_pSteamSocketMgr;
@@ -45,6 +58,9 @@ public:
 protected:
     char m_replyStore[2048];
     bf_write m_replyPacket;
+
+    bool m_bDefaultChallengeNumber;
+    uint32_t m_ChallengeNumber;
 };
 
 //A2S_PLAYER response
@@ -52,7 +68,7 @@ class CReturnA2sPlayer : public CReturnHandle
 {
 public:
     CReturnA2sPlayer()
-        : m_bDefaultChallengeNumber(true), m_FakePlayerDisplayNum(64)
+        : m_FakePlayerDisplayNum(64)
     {
     }
     
@@ -64,8 +80,7 @@ public:
     bool RemoveFakePlayer(uint8_t index);
     void SetFakePlayerDisplayNum(uint8_t number){ m_FakePlayerDisplayNum = number; }
     
-    void BuildChallengeResponse();
-    bool IsValidRequest(char* requestBuf){ return g_ChallengeManager.IsValidChallengeRequest(requestBuf); }
+    bool IsValidRequest(char* requestBuf){ return g_ChallengeManager.IsValidA2sPlayerChallengeRequest(requestBuf); }
     bool IsOfficialRequest(char* requestBuf);
     bool SetChallengeNumber(uint32_t number, bool bDefault);
     
@@ -84,10 +99,6 @@ private:
 private:
     CBaseHandle m_ResourceEntity;
     
-    char m_RequestStrWithChallenge[10];
-    uint32_t m_ChallengeNumber;
-    bool m_bDefaultChallengeNumber;
-    
     uint8_t m_FakePlayerDisplayNum;
     uint8_t m_TotalClientsCount;
     std::vector<PlayerInfo_t> m_FakePlayers;
@@ -105,6 +116,7 @@ public:
     void InitRealInformation();
     
     virtual void BuildCommunicationFrame();
+    bool IsValidRequest(char* requestBuf){ return g_ChallengeManager.IsValidA2sInfoChallengeRequest(requestBuf); }
     
     void SetPassWord(bool bHavePassword, bool bDefault = false);
     uint8_t GetPassWord();

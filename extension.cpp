@@ -71,23 +71,46 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
     if(!g_bEnabled)
         RETURN_META_VALUE(MRES_IGNORED, NULL);
     
+    int host_info_show = g_pCvar->FindVar("host_info_show")->GetInt();
+
     //A2S_INFO was disabled by server
-    if(g_pCvar->FindVar("host_info_show")->GetInt() < 1)
+    if(host_info_show < 1)
         RETURN_META_VALUE(MRES_IGNORED, NULL);
     
     int recvSize = META_RESULT_ORIG_RET(int);
     if(!recvSize)
         RETURN_META_VALUE(MRES_IGNORED, NULL);
-    
+
     //A2S_INFO
-    if(strncmp(buf, A2S_INFO_PACKET, recvSize) == 0)
+    if((recvSize == 25 || recvSize == 29) && strncmp(buf, A2S_INFO_PACKET, recvSize) == 0)
     {
-        //Build return message frame
-        g_ReturnA2sInfo.BuildCommunicationFrame();
-        
-        //Send fake packet
-        g_ReturnA2sInfo.SendTo(s, 0, from);
-        
+        switch(host_info_show)
+        {
+            case 2: //host_info_show 2 need challenge when requesting A2S_INFO
+                {
+                    if(recvSize == 25)
+                    {
+                        g_ReturnA2sInfo.BuildChallengeResponse();
+                        g_ReturnA2sInfo.SendTo(s, 0, from);
+                        break;
+                    }
+
+                    if(!g_ReturnA2sInfo.IsValidRequest(buf))
+                        break;
+                    
+                    g_ReturnA2sInfo.BuildCommunicationFrame();
+                    g_ReturnA2sInfo.SendTo(s, 0, from);
+                    break;
+                }
+            case 1:
+                {
+                    g_ReturnA2sInfo.BuildCommunicationFrame();
+                    g_ReturnA2sInfo.SendTo(s, 0, from);
+                    break;
+                }
+            default: break;
+        }
+
         RETURN_META_VALUE(MRES_SUPERCEDE, -1);
     }
     

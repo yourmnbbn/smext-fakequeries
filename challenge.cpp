@@ -48,8 +48,14 @@ uint32_t ChallengeManager::GenerateChallenge()
     return unChallenge;
 }
 
-bool ChallengeManager::IsValidChallengeRequest(const char* challenge)
+bool ChallengeManager::IsValidA2sPlayerChallengeRequest(const char* challenge)
 {
     uint32_t challengeNum = *reinterpret_cast<uint32_t*>((uintptr_t)challenge + 5);
+    return challengeNum == m_unCurrentChallenge || challengeNum == m_unLastChallenge;
+}
+
+bool ChallengeManager::IsValidA2sInfoChallengeRequest(const char* challenge)
+{
+    uint32_t challengeNum = *reinterpret_cast<uint32_t*>((uintptr_t)challenge + 25);
     return challengeNum == m_unCurrentChallenge || challengeNum == m_unLastChallenge;
 }

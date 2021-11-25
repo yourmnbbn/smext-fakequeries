@@ -15,7 +15,8 @@ public:
     bool SetInterval(uint32_t interval);
 
     uint32_t GetCurrentChallenge() { return m_unCurrentChallenge; };
-    bool IsValidChallengeRequest(const char* challenge);
+    bool IsValidA2sPlayerChallengeRequest(const char* challenge);
+    bool IsValidA2sInfoChallengeRequest(const char* challenge);
 
 protected:
     uint32_t GenerateChallenge();

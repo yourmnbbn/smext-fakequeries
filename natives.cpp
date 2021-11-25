@@ -4,10 +4,6 @@
 #define S2A_EXTRA_DATA_HAS_GAMETAG_DATA (1 << 5)
 #define S2A_EXTRA_DATA_GAMEID (1 << 0)
 
-#ifdef _WIN32
-#pragma warning (disable:4309)
-#endif
-
 CReturnA2sInfo g_ReturnA2sInfo;
 CReturnA2sPlayer g_ReturnA2sPlayer;
 
@@ -80,20 +76,6 @@ void CReturnA2sPlayer::InitResourceEntity()
             }
         }
     }
-}
-
-void CReturnA2sPlayer::BuildChallengeResponse()
-{
-    if(m_bDefaultChallengeNumber)
-    {
-        m_ChallengeNumber = g_ChallengeManager.GetCurrentChallenge();
-    }
-    
-    m_replyPacket.Reset();
-    
-    m_replyPacket.WriteLong(-1);        //0xFFFFFFFF
-    m_replyPacket.WriteByte(0x41); 
-    m_replyPacket.WriteLong(m_ChallengeNumber); 
 }
 
 bool CReturnA2sPlayer::IsOfficialRequest(char* requestBuf)
