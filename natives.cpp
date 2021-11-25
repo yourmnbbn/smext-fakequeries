@@ -581,7 +581,7 @@ void CReturnA2sInfo::SetNumFakeClients(uint8_t iNumFakeClients, bool bDefault)
 
 uint8_t CReturnA2sInfo::GetNumFakeClients()
 {
-    if(m_bDefaultMaxClients)
+    if(m_bDefaultNumFakeClients)
         return g_pServer->GetNumFakeClients();
     else
         return m_iNumFakeClients;
