@@ -76,6 +76,8 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
         RETURN_META_VALUE(MRES_IGNORED, NULL);
     
     int recvSize = META_RESULT_ORIG_RET(int);
+    if(!recvSize)
+        RETURN_META_VALUE(MRES_IGNORED, NULL);
     
     //A2S_INFO
     if(strncmp(buf, A2S_INFO_PACKET, recvSize) == 0)
