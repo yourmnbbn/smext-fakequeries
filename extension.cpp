@@ -65,6 +65,7 @@ bool g_bEnabled = false;
 bool g_bSteamWorksAPIActivated = false;
 
 ChallengeManager g_ChallengeManager;
+CHLTVServer** g_pHltvServer = nullptr;
 
 int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
 {
@@ -217,6 +218,13 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
         return false;
     }
     
+    g_pGameConfig->GetAddress("g_pHltvServer", (void**)&g_pHltvServer);
+    if(!g_pHltvServer)
+    {
+        snprintf(error, maxlen, "Failed to get address of g_pHltvServer");
+        return false;
+    }
+
     SH_MANUALHOOK_RECONFIGURE(Hook_RecvFrom, offset, 0, 0);
     SH_ADD_MANUALHOOK(Hook_RecvFrom, g_pSteamSocketMgr, SH_STATIC(Hook_RecvFrom), true);
    

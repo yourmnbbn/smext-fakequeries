@@ -39,6 +39,7 @@
 
 #include "smsdk_ext.h"
 #include <iserver.h>
+#include "hltvhelper.h"
 #include <inetchannelinfo.h>
 #include <itoolentity.h>
 #include <server_class.h>
