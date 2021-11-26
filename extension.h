@@ -41,8 +41,6 @@
 #include <iserver.h>
 #include "hltvhelper.h"
 #include <inetchannelinfo.h>
-#include <itoolentity.h>
-#include <server_class.h>
 #include <steam_gameserver.h>
 
 // Default protocol version
@@ -58,8 +56,6 @@ extern CReturnA2sPlayer g_ReturnA2sPlayer;
 extern ICvar* g_pCvar;
 extern IServer* g_pServer;
 extern IServerGameClients* serverClients;
-extern IServerTools* servertools;
-extern IGameConfig* g_pGameConfigSDKT;
 extern CGlobalVars* gpGlobals;
 
 extern ISteamGameServer *(*SteamAPI_SteamGameServer)();
@@ -94,7 +90,6 @@ public:
 	 */
 	virtual void SDK_OnAllLoaded();
     
-    virtual void OnCoreMapStart(edict_t *pEdictList, int edictCount, int clientMax);
     void Hook_GameServerSteamAPIActivated(bool bActivated);
     
 	/**

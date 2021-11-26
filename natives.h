@@ -72,9 +72,6 @@ public:
     {
     }
     
-    void InitResourceEntity();  //Resource entity must be initialized in the main thread
-    CBaseEntity* GetResourceEntity();
-    
     virtual void BuildCommunicationFrame();
     void BuildEngineDefaultFrame();
     bool RemoveFakePlayer(uint8_t index);
@@ -97,8 +94,6 @@ private:
     bool GetPlayerStatus(int iClientIndex, PlayerInfo_t& info);
 
 private:
-    CBaseHandle m_ResourceEntity;
-    
     uint8_t m_FakePlayerDisplayNum;
     uint8_t m_TotalClientsCount;
     std::vector<PlayerInfo_t> m_FakePlayers;

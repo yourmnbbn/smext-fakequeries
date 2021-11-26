@@ -54,8 +54,6 @@ ICvar* g_pCvar = nullptr;
 IServer* g_pServer = nullptr;
 ISDKTools* g_pSDKTools = nullptr;
 IServerGameClients* serverClients = nullptr;
-IServerTools *servertools = nullptr;
-CGlobalVars* gpGlobals = nullptr;
 
 ISteamGameServer *(*SteamAPI_SteamGameServer)();
 bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);
@@ -250,11 +248,6 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
     return true;
 }
 
-void FakeQuery::OnCoreMapStart(edict_t *pEdictList, int edictCount, int clientMax)
-{
-    g_ReturnA2sPlayer.InitResourceEntity();
-}
-
 void FakeQuery::SDK_OnAllLoaded()
 {
     SM_GET_LATE_IFACE(SDKTOOLS, g_pSDKTools);    
@@ -267,9 +260,6 @@ bool FakeQuery::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlen, boo
 {
     GET_V_IFACE_CURRENT(GetEngineFactory, g_pCvar, ICvar, CVAR_INTERFACE_VERSION);
     GET_V_IFACE_ANY(GetServerFactory, serverClients, IServerGameClients, INTERFACEVERSION_SERVERGAMECLIENTS);
-    GET_V_IFACE_CURRENT(GetServerFactory, servertools, IServerTools, VSERVERTOOLS_INTERFACE_VERSION);
-    
-    gpGlobals = ismm->GetCGlobals();
     
     return true;
 }
