@@ -4,6 +4,7 @@
 #define S2A_EXTRA_DATA_HAS_GAMETAG_DATA (1 << 5)
 #define S2A_EXTRA_DATA_GAMEID (1 << 0)
 #define S2A_EXTRA_DATA_HAS_SPECTATOR_DATA (1 << 6)
+#define S2A_EXTRA_DATA_HAS_STEAM_ID (1 << 4)
 
 CReturnA2sInfo g_ReturnA2sInfo;
 CReturnA2sPlayer g_ReturnA2sPlayer;
@@ -350,7 +351,7 @@ void CReturnA2sInfo::BuildCommunicationFrame()
     m_replyPacket.WriteByte(GetVacStatus());
     m_replyPacket.WriteString(GetGameVersion());
 
-    uint8_t extraData = S2A_EXTRA_DATA_HAS_GAME_PORT | S2A_EXTRA_DATA_HAS_GAMETAG_DATA | S2A_EXTRA_DATA_GAMEID;
+    uint8_t extraData = S2A_EXTRA_DATA_HAS_GAME_PORT | S2A_EXTRA_DATA_HAS_GAMETAG_DATA | S2A_EXTRA_DATA_GAMEID | S2A_EXTRA_DATA_HAS_STEAM_ID;
 
     CHLTVServer* hltv = nullptr;
     for (CActiveHltvServerIterator it; it; it.Next())
@@ -365,10 +366,14 @@ void CReturnA2sInfo::BuildCommunicationFrame()
     m_replyPacket.WriteByte(extraData);       //extra flags
     m_replyPacket.WriteShort(m_RealPort);
 
+    ISteamGameServer* pSteamClientGameServer = SteamAPI_SteamGameServer();
+    uint64_t steamID = SteamAPI_ISteamGameServer_GetSteamID(pSteamClientGameServer);
+    m_replyPacket.WriteLongLong(steamID);
+
     if(extraData & S2A_EXTRA_DATA_HAS_SPECTATOR_DATA)
     {
         m_replyPacket.WriteShort(hltv->GetUDPPort());
-        
+
         const char* tv_name = g_pCvar->FindVar("tv_name")->GetString();
         m_replyPacket.WriteString(tv_name[0] ? tv_name : GetServerName());
     }

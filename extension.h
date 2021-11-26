@@ -64,6 +64,7 @@ extern CGlobalVars* gpGlobals;
 
 extern ISteamGameServer *(*SteamAPI_SteamGameServer)();
 extern bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);
+extern uint64_t (*SteamAPI_ISteamGameServer_GetSteamID)(ISteamGameServer* self);
 
 /**
  * @brief Sample implementation of the SDK Extension.
