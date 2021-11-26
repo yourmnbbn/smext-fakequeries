@@ -160,6 +160,9 @@ public:
     void SetServerTag(const char* sServerTag, bool bDefault = false);
     const char* GetServerTag();
 
+    void SetEDF(uint8_t edf, bool bDefault = false);
+    uint8_t GetEDF();  
+
 private:
     
     //Real information
@@ -212,6 +215,9 @@ private:
     
     char m_ServerTag[256];
     bool m_bDefaultServerTag;
+
+    uint8_t m_EDF;
+    bool m_bDefaultEDF;
 };
 
 extern bool g_bSteamWorksAPIActivated;

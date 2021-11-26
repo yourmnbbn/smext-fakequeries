@@ -252,6 +252,7 @@ void CReturnA2sInfo::ResetA2sInfo()
     m_bDefaultVacStatus = true;
     m_bDefaultGameVersion = true;
     m_bDefaultServerTag = true;
+    m_bDefaultEDF = true;
 }
 
 bool CReturnA2sInfo::ReadSteamINF()
@@ -351,7 +352,7 @@ void CReturnA2sInfo::BuildCommunicationFrame()
     m_replyPacket.WriteByte(GetVacStatus());
     m_replyPacket.WriteString(GetGameVersion());
 
-    uint8_t extraData = S2A_EXTRA_DATA_HAS_GAME_PORT | S2A_EXTRA_DATA_HAS_GAMETAG_DATA | S2A_EXTRA_DATA_GAMEID | S2A_EXTRA_DATA_HAS_STEAM_ID;
+    uint8_t extraData = GetEDF();
 
     CHLTVServer* hltv = nullptr;
     for (CActiveHltvServerIterator it; it; it.Next())
@@ -360,15 +361,20 @@ void CReturnA2sInfo::BuildCommunicationFrame()
         break;
     }
 
-    if(hltv)
-        extraData |= S2A_EXTRA_DATA_HAS_SPECTATOR_DATA;
+    if(!hltv && (extraData & S2A_EXTRA_DATA_HAS_SPECTATOR_DATA))
+        extraData &= ~S2A_EXTRA_DATA_HAS_SPECTATOR_DATA;
 
     m_replyPacket.WriteByte(extraData);       //extra flags
-    m_replyPacket.WriteShort(m_RealPort);
 
-    ISteamGameServer* pSteamClientGameServer = SteamAPI_SteamGameServer();
-    uint64_t steamID = SteamAPI_ISteamGameServer_GetSteamID(pSteamClientGameServer);
-    m_replyPacket.WriteLongLong(steamID);
+    if(extraData & S2A_EXTRA_DATA_HAS_GAME_PORT)
+        m_replyPacket.WriteShort(m_RealPort);
+
+    if(extraData & S2A_EXTRA_DATA_HAS_STEAM_ID)
+    {
+        ISteamGameServer* pSteamClientGameServer = SteamAPI_SteamGameServer();
+        uint64_t steamID = SteamAPI_ISteamGameServer_GetSteamID(pSteamClientGameServer);
+        m_replyPacket.WriteLongLong(steamID);
+    }
 
     if(extraData & S2A_EXTRA_DATA_HAS_SPECTATOR_DATA)
     {
@@ -378,8 +384,11 @@ void CReturnA2sInfo::BuildCommunicationFrame()
         m_replyPacket.WriteString(tv_name[0] ? tv_name : GetServerName());
     }
 
-    m_replyPacket.WriteString(GetServerTag());
-    m_replyPacket.WriteLongLong(GetAppID());
+    if(extraData & S2A_EXTRA_DATA_HAS_GAMETAG_DATA)
+        m_replyPacket.WriteString(GetServerTag());
+    
+    if(extraData & S2A_EXTRA_DATA_GAMEID)
+        m_replyPacket.WriteLongLong(GetAppID());
 }
 
 void CReturnA2sInfo::SetPassWord(bool bHavePassword, bool bDefault)
@@ -707,6 +716,26 @@ const char* CReturnA2sInfo::GetServerTag()
         return (const char*)m_ServerTag;
 }
 
+void CReturnA2sInfo::SetEDF(uint8_t edf, bool bDefault)
+{
+    if(bDefault)
+    {
+        m_bDefaultEDF = true;
+        return;
+    }
+
+    m_bDefaultEDF = false;
+    m_EDF = edf;
+}
+
+uint8_t CReturnA2sInfo::GetEDF()
+{
+    if(m_bDefaultEDF)
+        return S2A_EXTRA_DATA_GAMEID | S2A_EXTRA_DATA_HAS_GAME_PORT | S2A_EXTRA_DATA_HAS_GAMETAG_DATA | S2A_EXTRA_DATA_HAS_SPECTATOR_DATA | S2A_EXTRA_DATA_HAS_STEAM_ID;
+    else
+        return m_EDF;
+}
+
 static cell_t FQ_ToggleStatus(IPluginContext* pContext, const cell_t* params)
 {
     g_bEnabled = static_cast<bool>(params[1]);
@@ -827,6 +856,11 @@ static cell_t FQ_SetServerTag(IPluginContext* pContext, const cell_t* params)
     
     return 0;
 }
+static cell_t FQ_SetEDF(IPluginContext* pContext, const cell_t* params)
+{
+    g_ReturnA2sInfo.SetEDF(params[1], static_cast<bool>(params[2]));
+    return 0;
+}
 
 static cell_t FQ_AddFakePlayer(IPluginContext* pContext, const cell_t* params)
 {
@@ -879,6 +913,7 @@ const sp_nativeinfo_t g_ExtensionNatives[] =
     { "FQ_SetVacStatus",                    FQ_SetVacStatus },
     { "FQ_SetGameVersion",                  FQ_SetGameVersion },
     { "FQ_SetServerTag",                    FQ_SetServerTag },
+    { "FQ_SetEDF",                          FQ_SetEDF },
     { "FQ_AddFakePlayer",                   FQ_AddFakePlayer },
     { "FQ_RemoveAllFakePlayer",             FQ_RemoveAllFakePlayer },
     { "FQ_RemoveFakePlayer",                FQ_RemoveFakePlayer },
