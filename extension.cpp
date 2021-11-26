@@ -84,7 +84,7 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
         RETURN_META_VALUE(MRES_IGNORED, NULL);
 
     //A2S_INFO
-    if((recvSize == 25 || recvSize == 29) && strncmp(buf, A2S_INFO_PACKET, recvSize) == 0)
+    if(recvSize >= 25 && strncmp(buf, A2S_INFO_PACKET, recvSize) == 0)
     {
         switch(host_info_show)
         {
