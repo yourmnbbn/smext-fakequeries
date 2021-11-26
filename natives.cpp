@@ -142,26 +142,34 @@ bool CReturnA2sPlayer::GetPlayerStatus(int iClientIndex, PlayerInfo_t& info)
         info.playTime = pInfo->GetTimeConnected();
     else
         info.playTime = Plat_FloatTime();
-    
-    //Get player score
-    CBaseEntity* pEntity = GetResourceEntity();
-    
-    if(!pEntity)
-    {
-        info.score = 0;
-        return true;
-    }
-    
-    static unsigned int offset = 0;
 
+    static int offset = 0;
     if (offset == 0)
     {
-        sm_sendprop_info_t info;
-        gamehelpers->FindSendPropInfo("CCSPlayerResource", "m_iScore", &info);
-        offset = info.actual_offset;
+        IGameConfig* cfg = nullptr;
+        if(!gameconfs->LoadGameConfigFile("sm-cstrike.games", &cfg, nullptr, NULL))
+        {
+            info.score = 0;
+            return true;
+        }
+        
+        if(!cfg->GetOffset("CScore", &offset))
+        {
+            gameconfs->CloseGameConfigFile(cfg);
+            info.score = 0;
+            return true;
+        }
+
+        gameconfs->CloseGameConfigFile(cfg);
+
+        sm_sendprop_info_t propInfo;
+        gamehelpers->FindSendPropInfo("CCSPlayer", "m_bIsHoldingLookAtWeapon", &propInfo);
+        offset += propInfo.actual_offset;
     }
-    
-    info.score  = *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(pEntity) + offset + iClientIndex*4);
+
+    CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(iClientIndex);
+    info.score  = *reinterpret_cast<int*>((uintptr_t)(pEntity) + offset);
+
     return true;
 }
 

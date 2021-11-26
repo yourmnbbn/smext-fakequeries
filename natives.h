@@ -11,7 +11,7 @@ struct sockaddr;
 struct PlayerInfo_t{
     uint8_t index;
     std::string name;
-    uint32_t score;
+    int score;
     float playTime;
 };
 
@@ -84,7 +84,7 @@ public:
     bool IsOfficialRequest(char* requestBuf);
     bool SetChallengeNumber(uint32_t number, bool bDefault);
     
-    void InsertFakePlayer(uint8_t index, char* name, uint32_t score, float playTime)
+    void InsertFakePlayer(uint8_t index, char* name, int score, float playTime)
     {
         PlayerInfo_t info{index, name, score, playTime};
         m_FakePlayers.push_back(std::move(info));
