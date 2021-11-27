@@ -88,16 +88,13 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
         {
             case 2: //host_info_show 2 need challenge when requesting A2S_INFO
                 {
-                    if(recvSize == 25)
+                    if(recvSize == 25 || g_ReturnA2sInfo.IsValidRequest(buf))
                     {
                         g_ReturnA2sInfo.BuildChallengeResponse();
                         g_ReturnA2sInfo.SendTo(s, 0, from);
                         break;
                     }
 
-                    if(!g_ReturnA2sInfo.IsValidRequest(buf))
-                        break;
-                    
                     g_ReturnA2sInfo.BuildCommunicationFrame();
                     g_ReturnA2sInfo.SendTo(s, 0, from);
                     break;
