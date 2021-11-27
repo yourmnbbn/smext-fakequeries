@@ -97,8 +97,13 @@ bool CReturnA2sPlayer::GetPlayerStatus(int iClientIndex, PlayerInfo_t& info)
     }
 
     CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(iClientIndex);
-    info.score  = *reinterpret_cast<int*>((uintptr_t)(pEntity) + offset);
+    if(!pEntity)
+    {
+        info.score = 0;
+        return true;
+    }
 
+    info.score  = *reinterpret_cast<int*>((uintptr_t)(pEntity) + offset);
     return true;
 }
 
