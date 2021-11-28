@@ -23,4 +23,7 @@ Allows you to change the following part in A2S_PLAYER response.
 - Add or remove fake players. You can set the index, name, score and playtime of a fake player. (The fake player only exist in the response and is not an actual client or fakeclient in game.)
 
 If you are unfamiliar with some of the things listed above, [here is the answer.](https://developer.valvesoftware.com/wiki/Server_queries)
+
+## Known issue
+- Some 3rd party query tools will firstly request for a challenge number, then use it to request A2S_INFO, A2S_RULES etc at the same time. Tools with this kind of implementation is not supported when using this extension.
   
