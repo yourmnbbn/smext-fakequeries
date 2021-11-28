@@ -2,31 +2,32 @@
 #define _INCLUDE_SOURCEMOD_EXTENSION_CHALLENGE_H_
 
 #include "extension.h"
-#include <chrono>
+#include <utlvector.h>
+#include <netadr.h>
 
-using Milliseconds_t = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
+typedef struct
+{
+	netadr_s    adr;       // Address where challenge value was sent to.
+	int			challenge; // To connect, adr IP address must respond with this #
+	float		time;      // # is valid for only a short duration.
+} challenge_t;
+
 
 class ChallengeManager
 {
 public:
-    void Init(uint32_t interval);
-    void RunFrame();
-    uint32_t GetInterval() { return m_unInterval; };
-    bool SetInterval(uint32_t interval);
+    ChallengeManager() : m_ServerQueryChallenges(0, 1024)
+    {
+    }
 
-    uint32_t GetCurrentChallenge() { return m_unCurrentChallenge; };
-    bool IsValidA2sPlayerChallengeRequest(const char* challenge);
-    bool IsValidA2sInfoChallengeRequest(const char* challenge);
-
-protected:
-    uint32_t GenerateChallenge();
-    Milliseconds_t GetTime();
+public:
+    int GetChallenge(const netadr_s& adr);
+    bool CheckChallenge(const netadr_s& adr, int nChallengeValue);
+    bool IsValidA2sPlayerChallengeRequest(const char* challenge, const netadr_s& adr);
+    bool IsValidA2sInfoChallengeRequest(const char* challenge, const netadr_s& adr);
 
 private:
-    Milliseconds_t m_TimeRecord;
-    uint32_t m_unInterval;
-    uint32_t m_unCurrentChallenge;
-    uint32_t m_unLastChallenge;
+    CUtlVector<challenge_t> m_ServerQueryChallenges;
 };
 
 extern ChallengeManager g_ChallengeManager;

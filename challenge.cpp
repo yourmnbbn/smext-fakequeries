@@ -1,61 +1,91 @@
 #include "challenge.h"
+#include <random.h>
 
-void ChallengeManager::Init(uint32_t interval)
-{
-    if(interval < 1000)
-        m_unInterval = 1000;
-    else
-        m_unInterval = interval;
-    
-    m_unCurrentChallenge = GenerateChallenge();
-    m_unLastChallenge = m_unCurrentChallenge;
-}
+#define MAX_CHALLENGES 16384
+#define MAX_INTERVAL 5.f
 
-void ChallengeManager::RunFrame()
+bool ChallengeManager::CheckChallenge(const netadr_s& adr, int nChallengeValue)
 {
-    Milliseconds_t time = GetTime();
-    if ((time - m_TimeRecord).count() >= m_unInterval)
+    float net_time = Plat_FloatTime();
+
+    for (int i=0 ; i<m_ServerQueryChallenges.Count() ; i++)
     {
-        m_TimeRecord = time;
+        if ( adr.CompareAdr(m_ServerQueryChallenges[i].adr, true)) // base adr only
+        {
+            if (nChallengeValue != m_ServerQueryChallenges[i].challenge)
+                return false;
 
-        m_unLastChallenge = m_unCurrentChallenge;
-        m_unCurrentChallenge = GenerateChallenge();
+            if (net_time > (m_ServerQueryChallenges[i].time + MAX_INTERVAL))
+            {
+                m_ServerQueryChallenges.FastRemove(i);
+                return false;
+            }
+
+            return true;
+        }
+
+        // clean up any old entries
+        if (net_time > (m_ServerQueryChallenges[i].time + MAX_INTERVAL)) 
+        {
+            m_ServerQueryChallenges.FastRemove(i);
+            i--; // backup one as we just shifted the whole vector back by the deleted element
+        }
     }
+
+    return false;
 }
 
-bool ChallengeManager::SetInterval(uint32_t interval)
+int ChallengeManager::GetChallenge(const netadr_s& adr)
 {
-    if(interval < 1000)
-        return false;
-    
-    m_unInterval = interval;
-    return true;
+    int		oldest = 0;
+    float	oldestTime = FLT_MAX;
+    float net_time = Plat_FloatTime();
+        
+    // see if we already have a challenge for this ip
+    for (int i = 0 ; i < m_ServerQueryChallenges.Count() ; i++)
+    {
+        if (adr.CompareAdr(m_ServerQueryChallenges[i].adr, true))
+        {
+            if(net_time > m_ServerQueryChallenges[i].time + MAX_INTERVAL)
+            {
+                m_ServerQueryChallenges.FastRemove(i);
+                break;
+            }
+            else
+            {
+                return m_ServerQueryChallenges[i].challenge;
+            }
+        }
+        
+        if (m_ServerQueryChallenges[i].time < oldestTime)
+        {
+            // remember oldest challenge
+            oldestTime = m_ServerQueryChallenges[i].time;
+            oldest = i;
+        }
+    }
+
+    if (m_ServerQueryChallenges.Count() > MAX_CHALLENGES)
+    {
+        m_ServerQueryChallenges.FastRemove( oldest );	
+    }
+
+    int newEntry = m_ServerQueryChallenges.AddToTail();
+
+    m_ServerQueryChallenges[newEntry].challenge = (RandomInt(0,0x0FFF) << 16) | RandomInt(0,0xFFFF);
+    m_ServerQueryChallenges[newEntry].adr = adr;
+    m_ServerQueryChallenges[newEntry].time = net_time;
+    return m_ServerQueryChallenges[newEntry].challenge;
 }
 
-Milliseconds_t ChallengeManager::GetTime()
+bool ChallengeManager::IsValidA2sPlayerChallengeRequest(const char* challenge, const netadr_s& adr)
 {
-    return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+    int challengeNum = *reinterpret_cast<uint32_t*>((uintptr_t)challenge + 5);
+    return CheckChallenge(adr, challengeNum);
 }
 
-uint32_t ChallengeManager::GenerateChallenge()
+bool ChallengeManager::IsValidA2sInfoChallengeRequest(const char* challenge, const netadr_s& adr)
 {
-    srand(smutils->GetAdjustedTime());
-    uint32_t unChallenge = rand();
-    
-    if(unChallenge == 0xFFFFFFFF || unChallenge == 0)
-        unChallenge = 0x5AA5EFC2;
-    
-    return unChallenge;
-}
-
-bool ChallengeManager::IsValidA2sPlayerChallengeRequest(const char* challenge)
-{
-    uint32_t challengeNum = *reinterpret_cast<uint32_t*>((uintptr_t)challenge + 5);
-    return challengeNum == m_unCurrentChallenge || challengeNum == m_unLastChallenge;
-}
-
-bool ChallengeManager::IsValidA2sInfoChallengeRequest(const char* challenge)
-{
-    uint32_t challengeNum = *reinterpret_cast<uint32_t*>((uintptr_t)challenge + 25);
-    return challengeNum == m_unCurrentChallenge || challengeNum == m_unLastChallenge;
+    int challengeNum = *reinterpret_cast<uint32_t*>((uintptr_t)challenge + 25);
+    return CheckChallenge(adr, challengeNum);
 }

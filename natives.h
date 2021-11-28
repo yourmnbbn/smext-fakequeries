@@ -6,8 +6,6 @@
 
 #define A2S_PLAYER_REQUEST_LEN 9
 
-struct sockaddr;
-
 struct PlayerInfo_t{
     uint8_t index;
     std::string name;
@@ -28,11 +26,11 @@ public:
     virtual const char* GetCommunicationFramePtr() {return (const char *)m_replyPacket.GetData();}
     virtual int GetNumBytesWritten() {return m_replyPacket.GetNumBytesWritten();}
     
-    virtual void BuildChallengeResponse()
+    virtual void BuildChallengeResponse(netadr_s* adr)
     {
         if(m_bDefaultChallengeNumber)
         {
-            m_ChallengeNumber = g_ChallengeManager.GetCurrentChallenge();
+            m_ChallengeNumber = g_ChallengeManager.GetChallenge(*adr);
         }
         
         m_replyPacket.Reset();
@@ -42,15 +40,15 @@ public:
         m_replyPacket.WriteLong(m_ChallengeNumber); 
     }
 
-    virtual void SendTo(int s, int flags, sockaddr* from)
+    virtual void SendTo(int s, int flags, netadr_s* from)
     {
         extern void* g_pSteamSocketMgr;
         extern int g_iSendToOffset;
 
         #ifdef _WIN32
-        ((int(__thiscall*)(void*, int, const char*, int, int, sockaddr*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
+        ((int(__thiscall*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
         #else
-        ((int(__cdecl*)(void*, int, const char*, int, int, sockaddr*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
+        ((int(__cdecl*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
         #endif
     }
 
@@ -60,7 +58,7 @@ protected:
     bf_write m_replyPacket;
 
     bool m_bDefaultChallengeNumber;
-    uint32_t m_ChallengeNumber;
+    int m_ChallengeNumber;
 };
 
 //A2S_PLAYER response
@@ -77,7 +75,7 @@ public:
     bool RemoveFakePlayer(uint8_t index);
     void SetFakePlayerDisplayNum(uint8_t number){ m_FakePlayerDisplayNum = number; }
     
-    bool IsValidRequest(char* requestBuf){ return g_ChallengeManager.IsValidA2sPlayerChallengeRequest(requestBuf); }
+    bool IsValidRequest(char* requestBuf, netadr_s* adr){ return g_ChallengeManager.IsValidA2sPlayerChallengeRequest(requestBuf, *adr); }
     bool IsOfficialRequest(char* requestBuf);
     bool SetChallengeNumber(uint32_t number, bool bDefault);
     
@@ -111,7 +109,7 @@ public:
     void InitRealInformation();
     
     virtual void BuildCommunicationFrame();
-    bool IsValidRequest(char* requestBuf){ return g_ChallengeManager.IsValidA2sInfoChallengeRequest(requestBuf); }
+    bool IsValidRequest(char* requestBuf, netadr_s* adr){ return g_ChallengeManager.IsValidA2sInfoChallengeRequest(requestBuf, *adr); }
     
     void SetPassWord(bool bHavePassword, bool bDefault = false);
     uint8_t GetPassWord();

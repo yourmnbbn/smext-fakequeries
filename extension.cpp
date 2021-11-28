@@ -48,7 +48,7 @@ SMEXT_LINK(&g_FakeQuery);
 void* g_pSteamSocketMgr = nullptr;
 IGameConfig* g_pGameConfig;
 int g_iSendToOffset;
-SH_DECL_MANUALHOOK5(Hook_RecvFrom, 0, 0, 0, int, int, char*, int, int, sockaddr*)
+SH_DECL_MANUALHOOK5(Hook_RecvFrom, 0, 0, 0, int, int, char*, int, int, netadr_s*)
 
 ICvar* g_pCvar = nullptr;
 IServer* g_pServer = nullptr;
@@ -66,7 +66,7 @@ bool g_bSteamWorksAPIActivated = false;
 ChallengeManager g_ChallengeManager;
 CHLTVServer** g_pHltvServer = nullptr;
 
-int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
+int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
 {
     if(!g_bEnabled)
         RETURN_META_VALUE(MRES_IGNORED, NULL);
@@ -88,9 +88,9 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
         {
             case 2: //host_info_show 2 need challenge when requesting A2S_INFO
                 {
-                    if(recvSize == 25 || !g_ReturnA2sInfo.IsValidRequest(buf))
+                    if(recvSize == 25 || !g_ReturnA2sInfo.IsValidRequest(buf, from))
                     {
-                        g_ReturnA2sInfo.BuildChallengeResponse();
+                        g_ReturnA2sInfo.BuildChallengeResponse(from);
                         g_ReturnA2sInfo.SendTo(s, 0, from);
                         break;
                     }
@@ -117,13 +117,13 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
         //A2S_PLAYER Request challenge
         if(strncmp(buf, AS2_PLAYER_CHALLENGE_PACKET, recvSize) == 0)
         {
-            g_ReturnA2sPlayer.BuildChallengeResponse();
+            g_ReturnA2sPlayer.BuildChallengeResponse(from);
             g_ReturnA2sPlayer.SendTo(s, 0, from);
             RETURN_META_VALUE(MRES_SUPERCEDE, -1);
         }
         
         //Request with bad challenge number
-        if(!g_ReturnA2sPlayer.IsValidRequest(buf) && !g_ReturnA2sPlayer.IsOfficialRequest(buf))
+        if(!g_ReturnA2sPlayer.IsValidRequest(buf, from) && !g_ReturnA2sPlayer.IsOfficialRequest(buf))
             RETURN_META_VALUE(MRES_SUPERCEDE, -1);
         
         switch(g_pCvar->FindVar("host_players_show")->GetInt())
@@ -147,11 +147,6 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
     }
     
     RETURN_META_VALUE(MRES_IGNORED, NULL);
-}
-
-void FrameHook(bool simulating)
-{
-    g_ChallengeManager.RunFrame();
 }
 
 bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
@@ -236,9 +231,6 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
         return false;
     }
 
-    g_ChallengeManager.Init(5000);
-
-    smutils->AddGameFrameHook(&FrameHook);
     sharesys->AddNatives(myself, g_ExtensionNatives);
     sharesys->RegisterLibrary(myself, "fakequeries");
     
@@ -265,7 +257,6 @@ void FakeQuery::SDK_OnUnload()
 {
     SH_REMOVE_MANUALHOOK(Hook_RecvFrom, g_pSteamSocketMgr, SH_STATIC(Hook_RecvFrom), true);
     gameconfs->CloseGameConfigFile(g_pGameConfig);
-    smutils->RemoveGameFrameHook(&FrameHook);
     SH_REMOVE_HOOK(IServerGameDLL, GameServerSteamAPIActivated, gamedll, SH_MEMBER(this, &FakeQuery::Hook_GameServerSteamAPIActivated), true);
 }
 
