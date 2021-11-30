@@ -76,7 +76,6 @@ public:
     void SetFakePlayerDisplayNum(uint8_t number){ m_FakePlayerDisplayNum = number; }
     
     bool IsValidRequest(char* requestBuf, netadr_s* adr){ return g_ChallengeManager.IsValidA2sPlayerChallengeRequest(requestBuf, *adr); }
-    bool IsOfficialRequest(char* requestBuf);
     bool SetChallengeNumber(uint32_t number, bool bDefault);
     
     void InsertFakePlayer(uint8_t index, char* name, int score, float playTime)

@@ -35,7 +35,6 @@
 #include <ISDKTools.h>
 
 #define A2S_INFO_PACKET "\xff\xff\xff\xff\x54\x53\x6f\x75\x72\x63\x65\x20\x45\x6e\x67\x69\x6e\x65\x20\x51\x75\x65\x72\x79\x00"
-#define AS2_PLAYER_CHALLENGE_PACKET "\xff\xff\xff\xff\x55\xff\xff\xff\xff"
 
 /**
  * @file extension.cpp
@@ -114,17 +113,13 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
     //A2S_PLAYER
     if(recvSize == 9 && buf[4] == 0x55)
     {
-        //A2S_PLAYER Request challenge
-        if(strncmp(buf, AS2_PLAYER_CHALLENGE_PACKET, recvSize) == 0)
+        //Bad challenge number, resend back valid challenge
+        if(!g_ReturnA2sPlayer.IsValidRequest(buf, from))
         {
             g_ReturnA2sPlayer.BuildChallengeResponse(from);
             g_ReturnA2sPlayer.SendTo(s, 0, from);
             RETURN_META_VALUE(MRES_SUPERCEDE, -1);
         }
-        
-        //Request with bad challenge number
-        if(!g_ReturnA2sPlayer.IsValidRequest(buf, from) && !g_ReturnA2sPlayer.IsOfficialRequest(buf))
-            RETURN_META_VALUE(MRES_SUPERCEDE, -1);
         
         switch(g_pCvar->FindVar("host_players_show")->GetInt())
         {

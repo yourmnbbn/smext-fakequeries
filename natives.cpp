@@ -9,11 +9,6 @@
 CReturnA2sInfo g_ReturnA2sInfo;
 CReturnA2sPlayer g_ReturnA2sPlayer;
 
-bool CReturnA2sPlayer::IsOfficialRequest(char* requestBuf)
-{
-    return *reinterpret_cast<uint32_t*>((uintptr_t)requestBuf + 5) == 0;
-}
-
 bool CReturnA2sPlayer::SetChallengeNumber(uint32_t number, bool bDefault)
 {
     if(bDefault)
