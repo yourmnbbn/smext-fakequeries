@@ -6,7 +6,7 @@ public Plugin myinfo =
     name = "Example - Fake players",
     author = "yourmnbbn",
     description = "Create fake players by returning fake AS2_INFO and A2S_PLAYER response",
-    version = "1.0.1",
+    version = "1.2.0",
     url = "URL"
 };
 
@@ -22,7 +22,10 @@ public void OnPluginStart()
     FQ_AddFakePlayer(3, "Test Player 3", 60, GetEngineTime());
     g_iFakePlayerCount = 3;
     FQ_SetNumClients(g_iFakePlayerCount + GetClientCount());
-
+    
+    //You can do like this to only add what you want in A2S_INFO extra data
+    FQ_SetEDF(ExtraData_GamePort | ExtraData_ServerTag);
+    
     FQ_ToggleStatus(true);
 }
 

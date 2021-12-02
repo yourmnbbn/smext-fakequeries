@@ -3,103 +3,11 @@
 #define S2A_EXTRA_DATA_HAS_GAME_PORT (1 << 7)
 #define S2A_EXTRA_DATA_HAS_GAMETAG_DATA (1 << 5)
 #define S2A_EXTRA_DATA_GAMEID (1 << 0)
-
-#ifdef _WIN32
-#pragma warning (disable:4309)
-#endif
+#define S2A_EXTRA_DATA_HAS_SPECTATOR_DATA (1 << 6)
+#define S2A_EXTRA_DATA_HAS_STEAM_ID (1 << 4)
 
 CReturnA2sInfo g_ReturnA2sInfo;
 CReturnA2sPlayer g_ReturnA2sPlayer;
-
-//https://github.com/alliedmodders/sourcemod/blob/1fbe5e1daaee9ba44164078fe7f59d862786e612/extensions/sdktools/vhelpers.cpp#L288
-bool FindNestedDataTable(SendTable *pTable, const char *name)
-{
-    if (strcmp(pTable->GetName(), name) == 0)
-    {
-        return true;
-    }
-
-    int props = pTable->GetNumProps();
-    SendProp *prop;
-
-    for (int i=0; i<props; i++)
-    {
-        prop = pTable->GetProp(i);
-        if (prop->GetDataTable())
-        {
-            if (FindNestedDataTable(prop->GetDataTable(), name))
-            {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-//https://github.com/alliedmodders/sourcemod/blob/1fbe5e1daaee9ba44164078fe7f59d862786e612/extensions/sdktools/vglobals.cpp#L295
-CBaseEntity* CReturnA2sPlayer::GetResourceEntity()
-{
-    if (gamehelpers->GetHandleEntity(m_ResourceEntity) != NULL)
-        return gamehelpers->ReferenceToEntity(m_ResourceEntity.GetEntryIndex());
-    else
-        return nullptr;
-}
-
-void CReturnA2sPlayer::InitResourceEntity()
-{
-    if(!m_ResourceEntity.IsValid())
-    {
-        m_ResourceEntity.Term();
-    
-        int edictCount = gpGlobals->maxEntities;
-
-        for (int i=0; i<edictCount; i++)
-        {
-            edict_t *pEdict;
-            
-            if (i >= 0 && i < gpGlobals->maxEntities)
-                pEdict = (edict_t *)(gpGlobals->pEdicts + i);
-            
-            if (!pEdict || pEdict->IsFree())
-                continue;
-
-            if (!pEdict->GetNetworkable())
-                continue;
-
-            IHandleEntity *pHandleEnt = pEdict->GetNetworkable()->GetEntityHandle();
-            
-            if (!pHandleEnt)
-                continue;
-
-            ServerClass *pClass = pEdict->GetNetworkable()->GetServerClass();
-            if (FindNestedDataTable(pClass->m_pTable, "DT_PlayerResource"))
-            {
-                m_ResourceEntity = pHandleEnt->GetRefEHandle();
-                break;
-            }
-        }
-    }
-}
-
-void CReturnA2sPlayer::BuildChallengeResponse()
-{
-    if(m_bDefaultChallengeNumber)
-    {
-        m_ChallengeNumber = g_ChallengeManager.GetCurrentChallenge();
-    }
-    
-    m_replyPacket.Reset();
-    
-    m_replyPacket.WriteLong(-1);        //0xFFFFFFFF
-    m_replyPacket.WriteByte(0x41); 
-    m_replyPacket.WriteLong(m_ChallengeNumber); 
-}
-
-bool CReturnA2sPlayer::IsOfficialRequest(char* requestBuf)
-{
-    return *reinterpret_cast<uint32_t*>((uintptr_t)requestBuf + 5) == 0;
-}
 
 bool CReturnA2sPlayer::SetChallengeNumber(uint32_t number, bool bDefault)
 {
@@ -157,27 +65,40 @@ bool CReturnA2sPlayer::GetPlayerStatus(int iClientIndex, PlayerInfo_t& info)
     if(pInfo)
         info.playTime = pInfo->GetTimeConnected();
     else
-        info.playTime = 0.f;
-    
-    //Get player score
-    CBaseEntity* pEntity = GetResourceEntity();
-    
+        info.playTime = Plat_FloatTime();
+
+    static int offset = 0;
+    if (offset == 0)
+    {
+        IGameConfig* cfg = nullptr;
+        if(!gameconfs->LoadGameConfigFile("sm-cstrike.games", &cfg, nullptr, NULL))
+        {
+            info.score = 0;
+            return true;
+        }
+        
+        if(!cfg->GetOffset("CScore", &offset))
+        {
+            gameconfs->CloseGameConfigFile(cfg);
+            info.score = 0;
+            return true;
+        }
+
+        gameconfs->CloseGameConfigFile(cfg);
+
+        sm_sendprop_info_t propInfo;
+        gamehelpers->FindSendPropInfo("CCSPlayer", "m_bIsHoldingLookAtWeapon", &propInfo);
+        offset += propInfo.actual_offset;
+    }
+
+    CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(iClientIndex);
     if(!pEntity)
     {
         info.score = 0;
         return true;
     }
-    
-    static unsigned int offset = 0;
 
-    if (offset == 0)
-    {
-        sm_sendprop_info_t info;
-        gamehelpers->FindSendPropInfo("CCSPlayerResource", "m_iScore", &info);
-        offset = info.actual_offset;
-    }
-    
-    info.score  = *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(pEntity) + offset + iClientIndex*4);
+    info.score  = *reinterpret_cast<int*>((uintptr_t)(pEntity) + offset);
     return true;
 }
 
@@ -198,7 +119,7 @@ void CReturnA2sPlayer::BuildCommunicationFrame()
     m_replyPacket.WriteByte(m_TotalClientsCount > 64 ? 64 : m_TotalClientsCount);
     
     //Loop real clients
-    for(int i = 1; i <= maxClients; i++)
+    for(int i = 1; i <= playerhelpers->GetMaxClients(); i++)
     {
         PlayerInfo_t info;
         
@@ -237,6 +158,20 @@ void CReturnA2sPlayer::BuildCommunicationFrame()
     }
 }
 
+void CReturnA2sPlayer::BuildEngineDefaultFrame()
+{
+    int maxClients = g_ReturnA2sInfo.GetMaxClients();
+
+    m_replyPacket.Reset();
+
+    m_replyPacket.WriteLong(-1);        //0xFFFFFFFF
+    m_replyPacket.WriteByte(68);        //A2S_PLAYER response header
+    m_replyPacket.WriteByte(1);
+    m_replyPacket.WriteByte(0);
+    m_replyPacket.WriteString("Max Players");
+    m_replyPacket.WriteLong(maxClients);
+    m_replyPacket.WriteFloat(Plat_FloatTime());
+}
 
 void CReturnA2sInfo::ResetA2sInfo()
 {
@@ -254,6 +189,7 @@ void CReturnA2sInfo::ResetA2sInfo()
     m_bDefaultVacStatus = true;
     m_bDefaultGameVersion = true;
     m_bDefaultServerTag = true;
+    m_bDefaultEDF = true;
 }
 
 bool CReturnA2sInfo::ReadSteamINF()
@@ -352,11 +288,44 @@ void CReturnA2sInfo::BuildCommunicationFrame()
     m_replyPacket.WriteByte(GetPassWord());
     m_replyPacket.WriteByte(GetVacStatus());
     m_replyPacket.WriteString(GetGameVersion());
-    m_replyPacket.WriteByte(S2A_EXTRA_DATA_HAS_GAME_PORT | S2A_EXTRA_DATA_HAS_GAMETAG_DATA | S2A_EXTRA_DATA_GAMEID);       //extra flags
-    m_replyPacket.WriteShort(m_RealPort);
 
-    m_replyPacket.WriteString(GetServerTag());
-    m_replyPacket.WriteLongLong(GetAppID());
+    uint8_t extraData = GetEDF();
+
+    CHLTVServer* hltv = nullptr;
+    for (CActiveHltvServerIterator it; it; it.Next())
+    {
+        hltv = it; 
+        break;
+    }
+
+    if(!hltv && (extraData & S2A_EXTRA_DATA_HAS_SPECTATOR_DATA))
+        extraData &= ~S2A_EXTRA_DATA_HAS_SPECTATOR_DATA;
+
+    m_replyPacket.WriteByte(extraData);       //extra flags
+
+    if(extraData & S2A_EXTRA_DATA_HAS_GAME_PORT)
+        m_replyPacket.WriteShort(m_RealPort);
+
+    if(extraData & S2A_EXTRA_DATA_HAS_STEAM_ID)
+    {
+        ISteamGameServer* pSteamClientGameServer = SteamAPI_SteamGameServer();
+        uint64_t steamID = SteamAPI_ISteamGameServer_GetSteamID(pSteamClientGameServer);
+        m_replyPacket.WriteLongLong(steamID);
+    }
+
+    if(extraData & S2A_EXTRA_DATA_HAS_SPECTATOR_DATA)
+    {
+        m_replyPacket.WriteShort(hltv->GetUDPPort());
+
+        const char* tv_name = g_pCvar->FindVar("tv_name")->GetString();
+        m_replyPacket.WriteString(tv_name[0] ? tv_name : GetServerName());
+    }
+
+    if(extraData & S2A_EXTRA_DATA_HAS_GAMETAG_DATA)
+        m_replyPacket.WriteString(GetServerTag());
+    
+    if(extraData & S2A_EXTRA_DATA_GAMEID)
+        m_replyPacket.WriteLongLong(GetAppID());
 }
 
 void CReturnA2sInfo::SetPassWord(bool bHavePassword, bool bDefault)
@@ -567,7 +536,7 @@ void CReturnA2sInfo::SetNumFakeClients(uint8_t iNumFakeClients, bool bDefault)
 
 uint8_t CReturnA2sInfo::GetNumFakeClients()
 {
-    if(m_bDefaultMaxClients)
+    if(m_bDefaultNumFakeClients)
         return g_pServer->GetNumFakeClients();
     else
         return m_iNumFakeClients;
@@ -682,6 +651,26 @@ const char* CReturnA2sInfo::GetServerTag()
         return g_pCvar->FindVar("sv_tags")->GetString();
     else
         return (const char*)m_ServerTag;
+}
+
+void CReturnA2sInfo::SetEDF(uint8_t edf, bool bDefault)
+{
+    if(bDefault)
+    {
+        m_bDefaultEDF = true;
+        return;
+    }
+
+    m_bDefaultEDF = false;
+    m_EDF = edf;
+}
+
+uint8_t CReturnA2sInfo::GetEDF()
+{
+    if(m_bDefaultEDF)
+        return S2A_EXTRA_DATA_GAMEID | S2A_EXTRA_DATA_HAS_GAME_PORT | S2A_EXTRA_DATA_HAS_GAMETAG_DATA | S2A_EXTRA_DATA_HAS_SPECTATOR_DATA | S2A_EXTRA_DATA_HAS_STEAM_ID;
+    else
+        return m_EDF;
 }
 
 static cell_t FQ_ToggleStatus(IPluginContext* pContext, const cell_t* params)
@@ -804,6 +793,11 @@ static cell_t FQ_SetServerTag(IPluginContext* pContext, const cell_t* params)
     
     return 0;
 }
+static cell_t FQ_SetEDF(IPluginContext* pContext, const cell_t* params)
+{
+    g_ReturnA2sInfo.SetEDF(params[1], static_cast<bool>(params[2]));
+    return 0;
+}
 
 static cell_t FQ_AddFakePlayer(IPluginContext* pContext, const cell_t* params)
 {
@@ -856,6 +850,7 @@ const sp_nativeinfo_t g_ExtensionNatives[] =
     { "FQ_SetVacStatus",                    FQ_SetVacStatus },
     { "FQ_SetGameVersion",                  FQ_SetGameVersion },
     { "FQ_SetServerTag",                    FQ_SetServerTag },
+    { "FQ_SetEDF",                          FQ_SetEDF },
     { "FQ_AddFakePlayer",                   FQ_AddFakePlayer },
     { "FQ_RemoveAllFakePlayer",             FQ_RemoveAllFakePlayer },
     { "FQ_RemoveFakePlayer",                FQ_RemoveFakePlayer },

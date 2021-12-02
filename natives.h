@@ -6,12 +6,10 @@
 
 #define A2S_PLAYER_REQUEST_LEN 9
 
-struct sockaddr;
-
 struct PlayerInfo_t{
     uint8_t index;
     std::string name;
-    uint32_t score;
+    int score;
     float playTime;
 };
 
@@ -20,24 +18,37 @@ class CReturnHandle
 {
 public:
     CReturnHandle()
-        :m_replyPacket(m_replyStore, 2048)
+        :m_replyPacket(m_replyStore, 2048), m_bDefaultChallengeNumber(true)
     {
     }
     
     virtual void BuildCommunicationFrame() = 0;
-    
     virtual const char* GetCommunicationFramePtr() {return (const char *)m_replyPacket.GetData();}
     virtual int GetNumBytesWritten() {return m_replyPacket.GetNumBytesWritten();}
     
-    virtual void SendTo(int s, int flags, sockaddr* from)
+    virtual void BuildChallengeResponse(netadr_s* adr)
+    {
+        if(m_bDefaultChallengeNumber)
+        {
+            m_ChallengeNumber = g_ChallengeManager.GetChallenge(*adr);
+        }
+        
+        m_replyPacket.Reset();
+        
+        m_replyPacket.WriteLong(-1);
+        m_replyPacket.WriteByte(0x41); 
+        m_replyPacket.WriteLong(m_ChallengeNumber); 
+    }
+
+    virtual void SendTo(int s, int flags, netadr_s* from)
     {
         extern void* g_pSteamSocketMgr;
         extern int g_iSendToOffset;
 
         #ifdef _WIN32
-        ((int(__thiscall*)(void*, int, const char*, int, int, sockaddr*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
+        ((int(__thiscall*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
         #else
-        ((int(__cdecl*)(void*, int, const char*, int, int, sockaddr*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
+        ((int(__cdecl*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
         #endif
     }
 
@@ -45,6 +56,9 @@ public:
 protected:
     char m_replyStore[2048];
     bf_write m_replyPacket;
+
+    bool m_bDefaultChallengeNumber;
+    int m_ChallengeNumber;
 };
 
 //A2S_PLAYER response
@@ -52,23 +66,19 @@ class CReturnA2sPlayer : public CReturnHandle
 {
 public:
     CReturnA2sPlayer()
-        : m_bDefaultChallengeNumber(true), m_FakePlayerDisplayNum(64)
+        : m_FakePlayerDisplayNum(64)
     {
     }
     
-    void InitResourceEntity();  //Resource entity must be initialized in the main thread
-    CBaseEntity* GetResourceEntity();
-    
     virtual void BuildCommunicationFrame();
+    void BuildEngineDefaultFrame();
     bool RemoveFakePlayer(uint8_t index);
     void SetFakePlayerDisplayNum(uint8_t number){ m_FakePlayerDisplayNum = number; }
     
-    void BuildChallengeResponse();
-    bool IsValidRequest(char* requestBuf){ return g_ChallengeManager.IsValidChallengeRequest(requestBuf); }
-    bool IsOfficialRequest(char* requestBuf);
+    bool IsValidRequest(char* requestBuf, netadr_s* adr){ return g_ChallengeManager.IsValidA2sPlayerChallengeRequest(requestBuf, *adr); }
     bool SetChallengeNumber(uint32_t number, bool bDefault);
     
-    void InsertFakePlayer(uint8_t index, char* name, uint32_t score, float playTime)
+    void InsertFakePlayer(uint8_t index, char* name, int score, float playTime)
     {
         PlayerInfo_t info{index, name, score, playTime};
         m_FakePlayers.push_back(std::move(info));
@@ -81,12 +91,6 @@ private:
     bool GetPlayerStatus(int iClientIndex, PlayerInfo_t& info);
 
 private:
-    CBaseHandle m_ResourceEntity;
-    
-    char m_RequestStrWithChallenge[10];
-    uint32_t m_ChallengeNumber;
-    bool m_bDefaultChallengeNumber;
-    
     uint8_t m_FakePlayerDisplayNum;
     uint8_t m_TotalClientsCount;
     std::vector<PlayerInfo_t> m_FakePlayers;
@@ -104,6 +108,7 @@ public:
     void InitRealInformation();
     
     virtual void BuildCommunicationFrame();
+    bool IsValidRequest(char* requestBuf, netadr_s* adr){ return g_ChallengeManager.IsValidA2sInfoChallengeRequest(requestBuf, *adr); }
     
     void SetPassWord(bool bHavePassword, bool bDefault = false);
     uint8_t GetPassWord();
@@ -146,6 +151,9 @@ public:
     
     void SetServerTag(const char* sServerTag, bool bDefault = false);
     const char* GetServerTag();
+
+    void SetEDF(uint8_t edf, bool bDefault = false);
+    uint8_t GetEDF();  
 
 private:
     
@@ -199,6 +207,9 @@ private:
     
     char m_ServerTag[256];
     bool m_bDefaultServerTag;
+
+    uint8_t m_EDF;
+    bool m_bDefaultEDF;
 };
 
 extern bool g_bSteamWorksAPIActivated;

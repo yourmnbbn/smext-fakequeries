@@ -10,6 +10,15 @@ enum OS
     OS_MAC,
 }
 
+enum ExtraData
+{
+    ExtraData_GamePort  = (1 << 7),     //The server's game port.
+    ExtraData_Hltv      = (1 << 6),     //Spectator port for hltv and name of the hltv.
+    ExtraData_ServerTag = (1 << 5),     //Tags that describe the game.
+    ExtraData_GameID    = (1 << 0),     //The server's 64-bit app id, it is also 730 in csgo.
+    ExtraData_SteamID   = (1 << 4),     //Server's 64-bit steam id.
+};
+
 /**
  * Enable or disable the extension.
  *
@@ -146,6 +155,17 @@ native void FQ_SetGameVersion(const char[] sBuf, bool bResetToDefault = false);
  * @noreturn
  */
 native void FQ_SetServerTag(const char[] sBuf, bool bResetToDefault = false);
+
+/**
+ * Set the extra data flag(EDF) in A2S_INFO response.
+ * By default the EDF equals 'ExtraData_GamePort | ExtraData_Hltv | ExtraData_ServerTag | ExtraData_GameID | ExtraData_SteamID'
+ * Note that if your server doesn't have hltv, even if you set ExtraData_Hltv it won't be added to the response.
+ *
+ * @param edf                       EDF byte value.
+ * @param bResetToDefault           If this is true, EDF will be set to default.
+ * @noreturn
+ */
+native void FQ_SetEDF(ExtraData edf, bool bResetToDefault = false);
 
 /**
  * Set a2s player request challenge number.

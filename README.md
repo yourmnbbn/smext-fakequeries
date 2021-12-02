@@ -13,9 +13,10 @@ Allows you to change the following part in A2S_INFO response.
 - Max number of clients.
 - Number of fake clients.
 - OS information.
-- VAC status of the server0
+- VAC status of the server.
 - Game version.
-- Server tag.  
+- Server tag.
+- Extra data flag(EDF)  
 
 Allows you to change the following part in A2S_PLAYER response. 
 - Challenge number.
@@ -23,5 +24,6 @@ Allows you to change the following part in A2S_PLAYER response.
 
 If you are unfamiliar with some of the things listed above, [here is the answer.](https://developer.valvesoftware.com/wiki/Server_queries)
 
-## To do
-- Add custom EDF support.  
+## Known issue
+- Some 3rd party query tools will firstly request for a challenge number, then use it to request A2S_INFO, A2S_RULES etc at the same time. Tools with this kind of implementation is not supported when using this extension.
+  

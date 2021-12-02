@@ -35,7 +35,6 @@
 #include <ISDKTools.h>
 
 #define A2S_INFO_PACKET "\xff\xff\xff\xff\x54\x53\x6f\x75\x72\x63\x65\x20\x45\x6e\x67\x69\x6e\x65\x20\x51\x75\x65\x72\x79\x00"
-#define AS2_PLAYER_CHALLENGE_PACKET "\xff\xff\xff\xff\x55\xff\xff\xff\xff"
 
 /**
  * @file extension.cpp
@@ -48,77 +47,101 @@ SMEXT_LINK(&g_FakeQuery);
 void* g_pSteamSocketMgr = nullptr;
 IGameConfig* g_pGameConfig;
 int g_iSendToOffset;
-SH_DECL_MANUALHOOK5(Hook_RecvFrom, 0, 0, 0, int, int, char*, int, int, sockaddr*)
+SH_DECL_MANUALHOOK5(Hook_RecvFrom, 0, 0, 0, int, int, char*, int, int, netadr_s*)
 
 ICvar* g_pCvar = nullptr;
 IServer* g_pServer = nullptr;
 ISDKTools* g_pSDKTools = nullptr;
 IServerGameClients* serverClients = nullptr;
-IServerTools *servertools = nullptr;
-CGlobalVars* gpGlobals = nullptr;
 
 ISteamGameServer *(*SteamAPI_SteamGameServer)();
 bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);
+uint64_t (*SteamAPI_ISteamGameServer_GetSteamID)(ISteamGameServer* self);
 SH_DECL_HOOK1_void(IServerGameDLL, GameServerSteamAPIActivated, SH_NOATTRIB, 0, bool);
 
 bool g_bEnabled = false;
 bool g_bSteamWorksAPIActivated = false;
 
 ChallengeManager g_ChallengeManager;
+CHLTVServer** g_pHltvServer = nullptr;
 
-int Hook_RecvFrom(int s, char* buf, int len, int flags, sockaddr* from)
+int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
 {
     if(!g_bEnabled)
         RETURN_META_VALUE(MRES_IGNORED, NULL);
     
+    int host_info_show = g_pCvar->FindVar("host_info_show")->GetInt();
+
     //A2S_INFO was disabled by server
-    if(g_pCvar->FindVar("host_info_show")->GetInt() < 1)
+    if(host_info_show < 1)
         RETURN_META_VALUE(MRES_IGNORED, NULL);
     
     int recvSize = META_RESULT_ORIG_RET(int);
-    
+    if(!recvSize)
+        RETURN_META_VALUE(MRES_IGNORED, NULL);
+
     //A2S_INFO
-    if(strncmp(buf, A2S_INFO_PACKET, recvSize) == 0)
+    if(recvSize >= 25 && strncmp(buf, A2S_INFO_PACKET, recvSize) == 0)
     {
-        //Build return message frame
-        g_ReturnA2sInfo.BuildCommunicationFrame();
-        
-        //Send fake packet
-        g_ReturnA2sInfo.SendTo(s, 0, from);
-        
+        switch(host_info_show)
+        {
+            case 2: //host_info_show 2 need challenge when requesting A2S_INFO
+                {
+                    if(recvSize == 25 || !g_ReturnA2sInfo.IsValidRequest(buf, from))
+                    {
+                        g_ReturnA2sInfo.BuildChallengeResponse(from);
+                        g_ReturnA2sInfo.SendTo(s, 0, from);
+                        break;
+                    }
+
+                    g_ReturnA2sInfo.BuildCommunicationFrame();
+                    g_ReturnA2sInfo.SendTo(s, 0, from);
+                    break;
+                }
+            case 1:
+                {
+                    g_ReturnA2sInfo.BuildCommunicationFrame();
+                    g_ReturnA2sInfo.SendTo(s, 0, from);
+                    break;
+                }
+            default: break;
+        }
+
         RETURN_META_VALUE(MRES_SUPERCEDE, -1);
     }
     
     //A2S_PLAYER
     if(recvSize == 9 && buf[4] == 0x55)
     {
-        //A2S_PLAYER Request challenge
-        if(strncmp(buf, AS2_PLAYER_CHALLENGE_PACKET, recvSize) == 0)
+        //Bad challenge number, resend back valid challenge
+        if(!g_ReturnA2sPlayer.IsValidRequest(buf, from))
         {
-            g_ReturnA2sPlayer.BuildChallengeResponse();
+            g_ReturnA2sPlayer.BuildChallengeResponse(from);
             g_ReturnA2sPlayer.SendTo(s, 0, from);
             RETURN_META_VALUE(MRES_SUPERCEDE, -1);
         }
         
-        //Request with bad challenge number
-        if(!g_ReturnA2sPlayer.IsValidRequest(buf) && !g_ReturnA2sPlayer.IsOfficialRequest(buf))
-            RETURN_META_VALUE(MRES_SUPERCEDE, -1);
-        
-        //Build return message frame
-        g_ReturnA2sPlayer.BuildCommunicationFrame();
-        
-        //Send fake packet
-        g_ReturnA2sPlayer.SendTo(s, 0, from);
+        switch(g_pCvar->FindVar("host_players_show")->GetInt())
+        {
+            case 2:
+                {
+                    g_ReturnA2sPlayer.BuildCommunicationFrame();
+                    g_ReturnA2sPlayer.SendTo(s, 0, from);
+                    break;
+                }
+            case 1:
+                {
+                    g_ReturnA2sPlayer.BuildEngineDefaultFrame();
+                    g_ReturnA2sPlayer.SendTo(s, 0, from);
+                    break;
+                }
+            default : break;
+        }
 
         RETURN_META_VALUE(MRES_SUPERCEDE, -1);
     }
     
     RETURN_META_VALUE(MRES_IGNORED, NULL);
-}
-
-void FrameHook(bool simulating)
-{
-    g_ChallengeManager.RunFrame();
 }
 
 bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
@@ -134,10 +157,11 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
     {
         const char* pSteamGameServerFuncName = "SteamAPI_SteamGameServer_v013";
         const char* pBSecureFuncName = "SteamAPI_ISteamGameServer_BSecure";
+        const char* pGetSteamIDFuncName = "SteamAPI_ISteamGameServer_GetSteamID";
     
-        // bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);
         SteamAPI_SteamGameServer = reinterpret_cast<ISteamGameServer *(*)()>(pLibrary->GetSymbolAddress(pSteamGameServerFuncName));
         SteamAPI_ISteamGameServer_BSecure = reinterpret_cast<bool (*)(ISteamGameServer *self)>(pLibrary->GetSymbolAddress(pBSecureFuncName));
+        SteamAPI_ISteamGameServer_GetSteamID = reinterpret_cast<uint64_t (*)(ISteamGameServer *self)>(pLibrary->GetSymbolAddress(pGetSteamIDFuncName));
 
         if(SteamAPI_SteamGameServer == nullptr)
         {
@@ -147,6 +171,11 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
         if(SteamAPI_ISteamGameServer_BSecure == nullptr)
         {
             smutils->LogError(myself, "Failed to get %s function", pBSecureFuncName);
+        }
+
+        if(SteamAPI_ISteamGameServer_GetSteamID == nullptr)
+        {
+            smutils->LogError(myself, "Failed to get %s function", pGetSteamIDFuncName);
         }
         
         pLibrary->CloseLibrary();
@@ -181,6 +210,13 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
         return false;
     }
     
+    g_pGameConfig->GetAddress("g_pHltvServer", (void**)&g_pHltvServer);
+    if(!g_pHltvServer)
+    {
+        snprintf(error, maxlen, "Failed to get address of g_pHltvServer");
+        return false;
+    }
+
     SH_MANUALHOOK_RECONFIGURE(Hook_RecvFrom, offset, 0, 0);
     SH_ADD_MANUALHOOK(Hook_RecvFrom, g_pSteamSocketMgr, SH_STATIC(Hook_RecvFrom), true);
    
@@ -190,18 +226,10 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
         return false;
     }
 
-    g_ChallengeManager.Init(5000);
-
-    smutils->AddGameFrameHook(&FrameHook);
     sharesys->AddNatives(myself, g_ExtensionNatives);
     sharesys->RegisterLibrary(myself, "fakequeries");
     
     return true;
-}
-
-void FakeQuery::OnCoreMapStart(edict_t *pEdictList, int edictCount, int clientMax)
-{
-    g_ReturnA2sPlayer.InitResourceEntity();
 }
 
 void FakeQuery::SDK_OnAllLoaded()
@@ -216,9 +244,6 @@ bool FakeQuery::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlen, boo
 {
     GET_V_IFACE_CURRENT(GetEngineFactory, g_pCvar, ICvar, CVAR_INTERFACE_VERSION);
     GET_V_IFACE_ANY(GetServerFactory, serverClients, IServerGameClients, INTERFACEVERSION_SERVERGAMECLIENTS);
-    GET_V_IFACE_CURRENT(GetServerFactory, servertools, IServerTools, VSERVERTOOLS_INTERFACE_VERSION);
-    
-    gpGlobals = ismm->GetCGlobals();
     
     return true;
 }
@@ -227,7 +252,6 @@ void FakeQuery::SDK_OnUnload()
 {
     SH_REMOVE_MANUALHOOK(Hook_RecvFrom, g_pSteamSocketMgr, SH_STATIC(Hook_RecvFrom), true);
     gameconfs->CloseGameConfigFile(g_pGameConfig);
-    smutils->RemoveGameFrameHook(&FrameHook);
     SH_REMOVE_HOOK(IServerGameDLL, GameServerSteamAPIActivated, gamedll, SH_MEMBER(this, &FakeQuery::Hook_GameServerSteamAPIActivated), true);
 }
 

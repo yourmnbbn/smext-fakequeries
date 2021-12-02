@@ -19,6 +19,21 @@
                     "read"      "0"
                 }
             }
+
+            "g_pHltvServer"
+            {
+                "signature"	"CBaseServer::ProcessConnectionlessPacket"
+
+                "windows" 
+                {
+                    "read"		"5733"
+                }
+                
+                "linux"
+                {
+                    "read"		"2576"
+                }
+            }
         }
         "Signatures"
         {	
@@ -27,6 +42,13 @@
                 "library"   "engine"
                 "linux"     "\x55\x89\xE5\x57\x89\xCF\x56\x53\x81\xEC\xCC\x00\x00\x00"
                 "windows"   "\x55\x8B\xEC\x81\xEC\x5C\x03\x00\x00\x53"
+            }
+
+            "CBaseServer::ProcessConnectionlessPacket"  //Str: "-enablelegacypackets"
+            {
+                "library"   "engine"
+                "linux"     "\x55\x89\xE5\x57\x56\x53\x81\xEC\x5C\x11\x00\x00"
+                "windows"   "\x55\x8B\xEC\xB8\xCC\x12\x00\x00"
             }
         }
         "Offsets"

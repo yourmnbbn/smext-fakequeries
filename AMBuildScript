@@ -173,6 +173,7 @@ class ExtensionConfig(object):
       '-Wno-unused',
       '-Wno-switch',
       '-Wno-array-bounds',
+      '-Wno-null-conversion',
       '-msse',
       '-m32',
       '-fvisibility=hidden',
@@ -246,6 +247,7 @@ class ExtensionConfig(object):
       'uuid.lib',
       'odbc32.lib',
       'odbccp32.lib',
+      'ws2_32.lib',
     ]
 
     if builder.options.opt == '1':
