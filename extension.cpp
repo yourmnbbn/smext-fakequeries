@@ -68,17 +68,17 @@ CHLTVServer** g_pHltvServer = nullptr;
 int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
 {
     if(!g_bEnabled)
-        RETURN_META_VALUE(MRES_IGNORED, NULL);
+        RETURN_META_VALUE(MRES_IGNORED, 0);
     
     int host_info_show = g_pCvar->FindVar("host_info_show")->GetInt();
 
     //A2S_INFO was disabled by server
     if(host_info_show < 1)
-        RETURN_META_VALUE(MRES_IGNORED, NULL);
+        RETURN_META_VALUE(MRES_IGNORED, 0);
     
     int recvSize = META_RESULT_ORIG_RET(int);
     if(!recvSize)
-        RETURN_META_VALUE(MRES_IGNORED, NULL);
+        RETURN_META_VALUE(MRES_IGNORED, 0);
 
     //A2S_INFO
     if(recvSize >= 25 && strncmp(buf, A2S_INFO_PACKET, recvSize) == 0)
@@ -141,7 +141,7 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
         RETURN_META_VALUE(MRES_SUPERCEDE, -1);
     }
     
-    RETURN_META_VALUE(MRES_IGNORED, NULL);
+    RETURN_META_VALUE(MRES_IGNORED, 0);
 }
 
 bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)

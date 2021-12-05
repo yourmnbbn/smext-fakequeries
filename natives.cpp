@@ -71,7 +71,7 @@ bool CReturnA2sPlayer::GetPlayerStatus(int iClientIndex, PlayerInfo_t& info)
     if (offset == 0)
     {
         IGameConfig* cfg = nullptr;
-        if(!gameconfs->LoadGameConfigFile("sm-cstrike.games", &cfg, nullptr, NULL))
+        if(!gameconfs->LoadGameConfigFile("sm-cstrike.games", &cfg, nullptr, 0))
         {
             info.score = 0;
             return true;
