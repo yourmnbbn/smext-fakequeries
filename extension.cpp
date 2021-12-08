@@ -130,19 +130,19 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
         {
             RETURN_META_VALUE(MRES_IGNORED, 0);
         }
-        
-        //Bad challenge number, resend back valid challenge
-        if(!g_ReturnA2sPlayer.IsValidRequest(buf, from))
-        {
-            g_ReturnA2sPlayer.BuildChallengeResponse(from);
-            g_ReturnA2sPlayer.SendTo(s, 0, from);
-            RETURN_META_VALUE(MRES_SUPERCEDE, -1);
-        }
-        
+
         switch(g_pCvar->FindVar("host_players_show")->GetInt())
         {
             case 2:
                 {
+                    //Bad challenge number, resend back valid challenge
+                    if(!g_ReturnA2sPlayer.IsValidRequest(buf, from))
+                    {
+                        g_ReturnA2sPlayer.BuildChallengeResponse(from);
+                        g_ReturnA2sPlayer.SendTo(s, 0, from);
+                        break;
+                    }
+                    
                     g_ReturnA2sPlayer.BuildCommunicationFrame();
                     g_ReturnA2sPlayer.SendTo(s, 0, from);
                     break;
