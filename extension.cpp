@@ -59,6 +59,12 @@ bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);
 uint64_t (*SteamAPI_ISteamGameServer_GetSteamID)(ISteamGameServer* self);
 SH_DECL_HOOK1_void(IServerGameDLL, GameServerSteamAPIActivated, SH_NOATTRIB, 0, bool);
 
+#ifdef _WIN32
+bool (__thiscall *Filter_ShouldDiscard)(netadr_s*);
+#else
+bool (__cdecl *Filter_ShouldDiscard)(netadr_s*);
+#endif
+
 bool g_bEnabled = false;
 bool g_bSteamWorksAPIActivated = false;
 
@@ -83,6 +89,12 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
     //A2S_INFO
     if(recvSize >= 25 && strncmp(buf, A2S_INFO_PACKET, recvSize) == 0)
     {
+        //This ip got banned by the server, we let the server handle it
+        if(Filter_ShouldDiscard(from))
+        {
+            RETURN_META_VALUE(MRES_IGNORED, 0);
+        }
+        
         switch(host_info_show)
         {
             case 2: //host_info_show 2 need challenge when requesting A2S_INFO
@@ -113,6 +125,12 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
     //A2S_PLAYER
     if(recvSize == 9 && buf[4] == 0x55)
     {
+        //This ip got banned by the server, we let the server handle it
+        if(Filter_ShouldDiscard(from))
+        {
+            RETURN_META_VALUE(MRES_IGNORED, 0);
+        }
+        
         //Bad challenge number, resend back valid challenge
         if(!g_ReturnA2sPlayer.IsValidRequest(buf, from))
         {
@@ -214,6 +232,13 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
     if(!g_pHltvServer)
     {
         snprintf(error, maxlen, "Failed to get address of g_pHltvServer");
+        return false;
+    }
+
+    g_pGameConfig->GetMemSig("Filter_ShouldDiscard", (void**)&Filter_ShouldDiscard);
+    if(!Filter_ShouldDiscard)
+    {
+        snprintf(error, maxlen, "Failed to look up Filter_ShouldDiscard signature");
         return false;
     }
 
