@@ -7,9 +7,9 @@
 
 typedef struct
 {
-	netadr_s    adr;       // Address where challenge value was sent to.
-	int			challenge; // To connect, adr IP address must respond with this #
-	float		time;      // # is valid for only a short duration.
+    netadr_s    adr;       // Address where challenge value was sent to.
+    int         challenge; // To connect, adr IP address must respond with this #
+    float       time;      // # is valid for only a short duration.
 } challenge_t;
 
 
