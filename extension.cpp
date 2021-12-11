@@ -104,7 +104,10 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
         RETURN_META_VALUE(MRES_IGNORED, 0);
     
     int recvSize = META_RESULT_ORIG_RET(int);
-    if(!recvSize)
+    if(recvSize < 4)
+        RETURN_META_VALUE(MRES_IGNORED, 0);
+
+    if(*(int*)buf != -1)    //Only accept connection-less packet
         RETURN_META_VALUE(MRES_IGNORED, 0);
 
     //A2S_INFO
@@ -293,7 +296,7 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
     }
 
     CDetourManager::Init(smutils->GetScriptingEngine(), g_pGameConfig);
-    
+
     g_pDetourFunc = DETOUR_CREATE_MEMBER_PTR(DetourFunc, pFunc);
     if(!g_pDetourFunc){
         snprintf(error, maxlen, "ValidateChallengeFunc detour could not be initialized ");
