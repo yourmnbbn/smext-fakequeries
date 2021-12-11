@@ -58,9 +58,7 @@ class CSymbolHelper : public ITextListener_SMC
     };
 
 public:
-    CSymbolHelper() : m_State(MyParseState_None), m_pValidateChallengeFunc(nullptr), m_pSendPacketFunc(nullptr),
-                        m_bValidateChallengeFuncFound(false), m_bSendPacketFuncFound(false)
-                        
+    CSymbolHelper() : m_State(MyParseState_None), m_pValidateChallengeFunc(nullptr), m_pSendPacketFunc(nullptr)
     {
     }
 
@@ -100,7 +98,6 @@ public://symbols
             return nullptr;
         
         void* ret = (void*)info.AllocationBase;
-        FreeModule(binary);
 
         return ret;
 #else
@@ -163,9 +160,6 @@ private:
 
     void* m_pValidateChallengeFunc;
     void* m_pSendPacketFunc;
-
-    bool m_bValidateChallengeFuncFound;
-    bool m_bSendPacketFuncFound;
 };
 
 #endif //_INCLUDE_SOURCEMOD_EXTENSION_SYMBOLHELPER_H_
