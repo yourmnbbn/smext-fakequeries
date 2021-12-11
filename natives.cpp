@@ -9,22 +9,6 @@
 CReturnA2sInfo g_ReturnA2sInfo;
 CReturnA2sPlayer g_ReturnA2sPlayer;
 
-bool CReturnA2sPlayer::SetChallengeNumber(uint32_t number, bool bDefault)
-{
-    if(bDefault)
-    {
-        m_bDefaultChallengeNumber = true;
-        return true;
-    }
-    
-    if(number == 0xFFFFFFFF || number == 0)    
-        return false;
-    
-    m_bDefaultChallengeNumber = false;
-    m_ChallengeNumber = number;
-    return true;
-}
-
 bool CReturnA2sPlayer::RemoveFakePlayer(uint8_t index)
 {
     bool bFound = false;
@@ -828,11 +812,6 @@ static cell_t FQ_SetFakePlayerDisplayNum(IPluginContext* pContext, const cell_t*
     return 0;
 }
 
-static cell_t FQ_SetA2sPlayerChanllengeNumber(IPluginContext* pContext, const cell_t* params)
-{
-    return g_ReturnA2sPlayer.SetChallengeNumber(params[1], params[2]);
-}
-
 const sp_nativeinfo_t g_ExtensionNatives[] =
 {
     { "FQ_ToggleStatus",                    FQ_ToggleStatus },
@@ -855,6 +834,5 @@ const sp_nativeinfo_t g_ExtensionNatives[] =
     { "FQ_RemoveAllFakePlayer",             FQ_RemoveAllFakePlayer },
     { "FQ_RemoveFakePlayer",                FQ_RemoveFakePlayer },
     { "FQ_SetFakePlayerDisplayNum",         FQ_SetFakePlayerDisplayNum },
-    { "FQ_SetA2sPlayerChanllengeNumber",    FQ_SetA2sPlayerChanllengeNumber },
     { nullptr,                              nullptr }
 };

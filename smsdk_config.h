@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"Fake Queries"
 #define SMEXT_CONF_DESCRIPTION	"Return fake A2S_INFO and AS2_PLAYER response"
-#define SMEXT_CONF_VERSION		"1.2.2"
+#define SMEXT_CONF_VERSION		"1.3.0"
 #define SMEXT_CONF_AUTHOR		"Yourmnbbn"
 #define SMEXT_CONF_URL			"https://github.com/yourmnbbn"
 #define SMEXT_CONF_LOGTAG		"Fake Queries"
@@ -64,7 +64,7 @@
 #define SMEXT_ENABLE_PLAYERHELPERS
 //#define SMEXT_ENABLE_DBMANAGER
 #define SMEXT_ENABLE_GAMECONF
-//#define SMEXT_ENABLE_MEMUTILS
+#define SMEXT_ENABLE_MEMUTILS
 #define SMEXT_ENABLE_GAMEHELPERS
 //#define SMEXT_ENABLE_TIMERSYS
 //#define SMEXT_ENABLE_THREADER
@@ -73,7 +73,7 @@
 //#define SMEXT_ENABLE_ADTFACTORY
 //#define SMEXT_ENABLE_PLUGINSYS
 //#define SMEXT_ENABLE_ADMINSYS
-//#define SMEXT_ENABLE_TEXTPARSERS
+#define SMEXT_ENABLE_TEXTPARSERS
 //#define SMEXT_ENABLE_USERMSGS
 //#define SMEXT_ENABLE_TRANSLATOR
 //#define SMEXT_ENABLE_ROOTCONSOLEMENU

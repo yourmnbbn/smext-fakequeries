@@ -46,6 +46,12 @@
 // Default protocol version
 #define DEFAULT_PROTO_VERSION 17
 
+#ifdef _WIN32
+	#define CALLING_CONVENTION __thiscall
+#else
+	#define CALLING_CONVENTION __cdecl
+#endif
+
 class CReturnA2sInfo;
 class CReturnA2sPlayer;
 
@@ -57,6 +63,8 @@ extern ICvar* g_pCvar;
 extern IServer* g_pServer;
 extern IServerGameClients* serverClients;
 extern CGlobalVars* gpGlobals;
+extern void* g_pSteamSocketMgr;
+extern int g_iSendToOffset;
 
 extern ISteamGameServer *(*SteamAPI_SteamGameServer)();
 extern bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);

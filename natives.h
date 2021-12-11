@@ -4,13 +4,12 @@
 #include "extension.h"
 #include "challenge.h"
 
-#define A2S_PLAYER_REQUEST_LEN 9
-
-struct PlayerInfo_t{
-    uint8_t index;
-    std::string name;
-    int score;
-    float playTime;
+struct PlayerInfo_t
+{
+    uint8_t         index;
+    std::string     name;
+    int             score;
+    float           playTime;
 };
 
 //Base response handle class
@@ -18,47 +17,30 @@ class CReturnHandle
 {
 public:
     CReturnHandle()
-        :m_replyPacket(m_replyStore, 2048), m_bDefaultChallengeNumber(true)
+        :m_replyPacket(m_replyStore, 2048)
     {
     }
     
     virtual void BuildCommunicationFrame() = 0;
     virtual const char* GetCommunicationFramePtr() {return (const char *)m_replyPacket.GetData();}
     virtual int GetNumBytesWritten() {return m_replyPacket.GetNumBytesWritten();}
-    
+
     virtual void BuildChallengeResponse(netadr_s* adr)
     {
-        if(m_bDefaultChallengeNumber)
-        {
-            m_ChallengeNumber = g_ChallengeManager.GetChallenge(*adr);
-        }
-        
         m_replyPacket.Reset();
-        
         m_replyPacket.WriteLong(-1);
         m_replyPacket.WriteByte(0x41); 
-        m_replyPacket.WriteLong(m_ChallengeNumber); 
+        m_replyPacket.WriteLong(g_ChallengeManager.GetChallenge(*adr)); 
     }
 
     virtual void SendTo(int s, int flags, netadr_s* from)
     {
-        extern void* g_pSteamSocketMgr;
-        extern int g_iSendToOffset;
-
-        #ifdef _WIN32
-        ((int(__thiscall*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
-        #else
-        ((int(__cdecl*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
-        #endif
+        ((int(CALLING_CONVENTION*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
     }
-
 
 protected:
     char m_replyStore[2048];
     bf_write m_replyPacket;
-
-    bool m_bDefaultChallengeNumber;
-    int m_ChallengeNumber;
 };
 
 //A2S_PLAYER response
@@ -76,7 +58,6 @@ public:
     void SetFakePlayerDisplayNum(uint8_t number){ m_FakePlayerDisplayNum = number; }
     
     bool IsValidRequest(char* requestBuf, netadr_s* adr){ return g_ChallengeManager.IsValidA2sPlayerChallengeRequest(requestBuf, *adr); }
-    bool SetChallengeNumber(uint32_t number, bool bDefault);
     
     void InsertFakePlayer(uint8_t index, char* name, int score, float playTime)
     {
