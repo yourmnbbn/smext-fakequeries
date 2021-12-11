@@ -168,16 +168,6 @@ native void FQ_SetServerTag(const char[] sBuf, bool bResetToDefault = false);
 native void FQ_SetEDF(ExtraData edf, bool bResetToDefault = false);
 
 /**
- * Set a2s player request challenge number.
- * If you don't know what this is, just skip it or see https://developer.valvesoftware.com/wiki/Server_queries
- *
- * @param iChallengeNumber          Challenge number, you can set it between 0x00000001 and 0xFFFFFFFE.
- * @param bResetToDefault           If this is true, challenge number will be set to default, by default it's random.
- * @return                          True if challenge number is set, false on passing invalid number 0 or 0xFFFFFFFF.
- */
-native bool FQ_SetA2sPlayerChanllengeNumber(int iChallengeNumber, bool bResetToDefault = false);
-
-/**
  * Add a fake player to A2S_PLAYER response
  *
  * @param iIndex                    Fake player index, you can duplicate this index for more than one fake players.
@@ -250,7 +240,6 @@ public void __ext_fakequeries_SetNTVOptional()
     MarkNativeAsOptional("FQ_SetVacStatus");
     MarkNativeAsOptional("FQ_SetGameVersion");
     MarkNativeAsOptional("FQ_SetServerTag");
-    MarkNativeAsOptional("FQ_SetA2sPlayerChanllengeNumber");
     MarkNativeAsOptional("FQ_AddFakePlayer");
     MarkNativeAsOptional("FQ_RemoveFakePlayer");
     MarkNativeAsOptional("FQ_RemoveAllFakePlayer");

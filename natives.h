@@ -25,19 +25,13 @@ public:
     virtual void BuildCommunicationFrame() = 0;
     virtual const char* GetCommunicationFramePtr() {return (const char *)m_replyPacket.GetData();}
     virtual int GetNumBytesWritten() {return m_replyPacket.GetNumBytesWritten();}
-    
+
     virtual void BuildChallengeResponse(netadr_s* adr)
     {
-        if(m_bDefaultChallengeNumber)
-        {
-            m_ChallengeNumber = g_ChallengeManager.GetChallenge(*adr);
-        }
-        
         m_replyPacket.Reset();
-        
         m_replyPacket.WriteLong(-1);
         m_replyPacket.WriteByte(0x41); 
-        m_replyPacket.WriteLong(m_ChallengeNumber); 
+        m_replyPacket.WriteLong(g_ChallengeManager.GetChallenge(*adr)); 
     }
 
     virtual void SendTo(int s, int flags, netadr_s* from)
@@ -56,9 +50,6 @@ public:
 protected:
     char m_replyStore[2048];
     bf_write m_replyPacket;
-
-    bool m_bDefaultChallengeNumber;
-    int m_ChallengeNumber;
 };
 
 //A2S_PLAYER response
@@ -76,7 +67,6 @@ public:
     void SetFakePlayerDisplayNum(uint8_t number){ m_FakePlayerDisplayNum = number; }
     
     bool IsValidRequest(char* requestBuf, netadr_s* adr){ return g_ChallengeManager.IsValidA2sPlayerChallengeRequest(requestBuf, *adr); }
-    bool SetChallengeNumber(uint32_t number, bool bDefault);
     
     void InsertFakePlayer(uint8_t index, char* name, int score, float playTime)
     {
