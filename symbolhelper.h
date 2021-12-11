@@ -133,9 +133,9 @@ public: //ITextListener_SMC
         {
             case MyParseState_ValidateChallengeFunc:
                 {
-                    smutils->LogMessage(myself, "%s:%s", key, value);
                     if(strcmp(key, PLATFORM_STRING) != 0)
                         break;
+                    
                     m_pValidateChallengeFunc = FindPatternFromBinary(LIB_PATH, value);
                     break;
                 }
@@ -143,6 +143,7 @@ public: //ITextListener_SMC
                 {
                     if(strcmp(key, PLATFORM_STRING) != 0)
                         break;
+                    
                     m_pSendPacketFunc = FindPatternFromBinary(LIB_PATH, value);
                     break;
                 }
@@ -156,7 +157,6 @@ public: //ITextListener_SMC
         m_State = MyParseState_None;
         return SMCResult_Continue;
     }
-protected:
 
 private:
     MyParseState m_State;
