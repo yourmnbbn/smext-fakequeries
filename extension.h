@@ -63,6 +63,8 @@ extern ICvar* g_pCvar;
 extern IServer* g_pServer;
 extern IServerGameClients* serverClients;
 extern CGlobalVars* gpGlobals;
+extern void* g_pSteamSocketMgr;
+extern int g_iSendToOffset;
 
 extern ISteamGameServer *(*SteamAPI_SteamGameServer)();
 extern bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);

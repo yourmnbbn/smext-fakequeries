@@ -4,13 +4,12 @@
 #include "extension.h"
 #include "challenge.h"
 
-#define A2S_PLAYER_REQUEST_LEN 9
-
-struct PlayerInfo_t{
-    uint8_t index;
-    std::string name;
-    int score;
-    float playTime;
+struct PlayerInfo_t
+{
+    uint8_t         index;
+    std::string     name;
+    int             score;
+    float           playTime;
 };
 
 //Base response handle class
@@ -18,7 +17,7 @@ class CReturnHandle
 {
 public:
     CReturnHandle()
-        :m_replyPacket(m_replyStore, 2048), m_bDefaultChallengeNumber(true)
+        :m_replyPacket(m_replyStore, 2048)
     {
     }
     
@@ -36,16 +35,8 @@ public:
 
     virtual void SendTo(int s, int flags, netadr_s* from)
     {
-        extern void* g_pSteamSocketMgr;
-        extern int g_iSendToOffset;
-
-        #ifdef _WIN32
-        ((int(__thiscall*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
-        #else
-        ((int(__cdecl*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
-        #endif
+        ((int(CALLING_CONVENTION*)(void*, int, const char*, int, int, netadr_s*))(*(void***)g_pSteamSocketMgr)[g_iSendToOffset])(g_pSteamSocketMgr, s, GetCommunicationFramePtr(), GetNumBytesWritten(), flags, from);
     }
-
 
 protected:
     char m_replyStore[2048];
