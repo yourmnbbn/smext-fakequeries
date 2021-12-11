@@ -46,6 +46,12 @@
 // Default protocol version
 #define DEFAULT_PROTO_VERSION 17
 
+#ifdef _WIN32
+	#define CALLING_CONVENTION __thiscall
+#else
+	#define CALLING_CONVENTION __cdecl
+#endif
+
 class CReturnA2sInfo;
 class CReturnA2sPlayer;
 

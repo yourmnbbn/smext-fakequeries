@@ -33,6 +33,8 @@
 #include "natives.h"
 #include "challenge.h"
 #include <ISDKTools.h>
+#include "CDetour/detours.h"
+#include "symbolhelper.h"
 
 #define A2S_INFO_PACKET "\xff\xff\xff\xff\x54\x53\x6f\x75\x72\x63\x65\x20\x45\x6e\x67\x69\x6e\x65\x20\x51\x75\x65\x72\x79\x00"
 
@@ -59,17 +61,36 @@ bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);
 uint64_t (*SteamAPI_ISteamGameServer_GetSteamID)(ISteamGameServer* self);
 SH_DECL_HOOK1_void(IServerGameDLL, GameServerSteamAPIActivated, SH_NOATTRIB, 0, bool);
 
-#ifdef _WIN32
-bool (__thiscall *Filter_ShouldDiscard)(netadr_s*);
-#else
-bool (__cdecl *Filter_ShouldDiscard)(netadr_s*);
-#endif
+void (CALLING_CONVENTION *SendPacket)(void*, const char*, int, uint32_t*);
+bool (CALLING_CONVENTION *Filter_ShouldDiscard)(netadr_s*);
 
 bool g_bEnabled = false;
 bool g_bSteamWorksAPIActivated = false;
 
 ChallengeManager g_ChallengeManager;
 CHLTVServer** g_pHltvServer = nullptr;
+
+CDetour* g_pDetourFunc = nullptr;
+CSymbolHelper g_SymbolHelper;
+
+DETOUR_DECL_MEMBER2(DetourFunc, bool, uint32_t*, adr, int, challenge)
+{
+    if(!g_bEnabled)
+        return DETOUR_MEMBER_CALL(DetourFunc)(adr, challenge);
+    
+    netadr_s addr(*adr, 0);
+    if(g_ChallengeManager.CheckChallenge(addr, challenge))
+        return true;
+
+    char sBuf[128];
+    bf_write buf(sBuf, 128);
+    buf.WriteLong(-1);
+    buf.WriteByte(0x41);
+    buf.WriteLong(g_ChallengeManager.GetChallenge(addr));
+
+    SendPacket(this, (const char*)buf.GetData(), buf.GetNumBytesWritten(), adr);
+    return false;
+}
 
 int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
 {
@@ -181,30 +202,25 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
         SteamAPI_ISteamGameServer_BSecure = reinterpret_cast<bool (*)(ISteamGameServer *self)>(pLibrary->GetSymbolAddress(pBSecureFuncName));
         SteamAPI_ISteamGameServer_GetSteamID = reinterpret_cast<uint64_t (*)(ISteamGameServer *self)>(pLibrary->GetSymbolAddress(pGetSteamIDFuncName));
 
-        bool bError = false;
+        pLibrary->CloseLibrary();
 
         if(SteamAPI_SteamGameServer == nullptr)
         {
             smutils->LogError(myself, "Failed to get %s function", pSteamGameServerFuncName);
-            bError = true;
+            return false;
         }
         
         if(SteamAPI_ISteamGameServer_BSecure == nullptr)
         {
             smutils->LogError(myself, "Failed to get %s function", pBSecureFuncName);
-            bError = true;
+            return false;
         }
 
         if(SteamAPI_ISteamGameServer_GetSteamID == nullptr)
         {
             smutils->LogError(myself, "Failed to get %s function", pGetSteamIDFuncName);
-            bError = true;
-        }
-        
-        pLibrary->CloseLibrary();
-
-        if(bError)
             return false;
+        }
     }
 
     SH_ADD_HOOK(IServerGameDLL, GameServerSteamAPIActivated, gamedll, SH_MEMBER(this, &FakeQuery::Hook_GameServerSteamAPIActivated), true);
@@ -258,6 +274,33 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
         snprintf(error, maxlen, "Error reading steam.inf");
         return false;
     }
+
+    if(!g_SymbolHelper.ParseFile("fakequeries.games", error, maxlen))
+        return false;
+    
+    void* pFunc = g_SymbolHelper.GetValidateChallengeFuncPtr();
+    if(!pFunc)
+    {
+        snprintf(error, maxlen, "Look up ValidateChallengeFunc signature failed");
+        return false;
+    }
+
+    *(void**)&SendPacket = g_SymbolHelper.GetSendPacketFuncPtr();
+    if(!SendPacket)
+    {
+        snprintf(error, maxlen, "Look up SendPacketFunc signature failed");
+        return false;
+    }
+
+    CDetourManager::Init(smutils->GetScriptingEngine(), g_pGameConfig);
+    g_pDetourFunc = DETOUR_CREATE_MEMBER_PTR(DetourFunc, pFunc);
+
+    if(!g_pDetourFunc){
+        snprintf(error, maxlen, "ValidateChallengeFunc detour could not be initialized ");
+        return false;
+    }
+
+    g_pDetourFunc->EnableDetour();
 
     sharesys->AddNatives(myself, g_ExtensionNatives);
     sharesys->RegisterLibrary(myself, "fakequeries");
