@@ -66,7 +66,7 @@ public:
     bool ParseFile(const char* filePath, char* error, size_t maxlen)
     {
         char path[PLATFORM_MAX_PATH];
-	    g_pSM->BuildPath(Path_SM, path, sizeof(path), "gamedata/%s.txt", filePath);
+        g_pSM->BuildPath(Path_SM, path, sizeof(path), "gamedata/%s.txt", filePath);
         return textparsers->ParseSMCFile(path, this, nullptr, error, maxlen) == SMCError_Okay;
     }
 
