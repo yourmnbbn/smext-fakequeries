@@ -173,7 +173,7 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
     , nullptr, 0);
     if (pLibrary != nullptr)
     {
-        const char* pSteamGameServerFuncName = "SteamAPI_SteamGameServer_v013";
+        const char* pSteamGameServerFuncName = "SteamAPI_SteamGameServer_v014";
         const char* pBSecureFuncName = "SteamAPI_ISteamGameServer_BSecure";
         const char* pGetSteamIDFuncName = "SteamAPI_ISteamGameServer_GetSteamID";
     
@@ -181,22 +181,30 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
         SteamAPI_ISteamGameServer_BSecure = reinterpret_cast<bool (*)(ISteamGameServer *self)>(pLibrary->GetSymbolAddress(pBSecureFuncName));
         SteamAPI_ISteamGameServer_GetSteamID = reinterpret_cast<uint64_t (*)(ISteamGameServer *self)>(pLibrary->GetSymbolAddress(pGetSteamIDFuncName));
 
+        bool bError = false;
+
         if(SteamAPI_SteamGameServer == nullptr)
         {
             smutils->LogError(myself, "Failed to get %s function", pSteamGameServerFuncName);
+            bError = true;
         }
         
         if(SteamAPI_ISteamGameServer_BSecure == nullptr)
         {
             smutils->LogError(myself, "Failed to get %s function", pBSecureFuncName);
+            bError = true;
         }
 
         if(SteamAPI_ISteamGameServer_GetSteamID == nullptr)
         {
             smutils->LogError(myself, "Failed to get %s function", pGetSteamIDFuncName);
+            bError = true;
         }
         
         pLibrary->CloseLibrary();
+
+        if(bError)
+            return false;
     }
 
     SH_ADD_HOOK(IServerGameDLL, GameServerSteamAPIActivated, gamedll, SH_MEMBER(this, &FakeQuery::Hook_GameServerSteamAPIActivated), true);
