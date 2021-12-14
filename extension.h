@@ -38,6 +38,8 @@
  */
 
 #include "smsdk_ext.h"
+#include <string>
+#include <vector>
 #include <iserver.h>
 #include "hltvhelper.h"
 #include <inetchannelinfo.h>

@@ -297,7 +297,7 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
 
     CDetourManager::Init(smutils->GetScriptingEngine(), g_pGameConfig);
 
-    g_pDetourFunc = DETOUR_CREATE_MEMBER_PTR(DetourFunc, pFunc);
+    g_pDetourFunc = DETOUR_CREATE_MEMBER(DetourFunc, pFunc);
     if(!g_pDetourFunc){
         snprintf(error, maxlen, "ValidateChallengeFunc detour could not be initialized ");
         return false;
