@@ -30,6 +30,8 @@ project.sources += [os.path.join(Extension.sm_root, 'public', 'libudis86', "udis
 project.sources += [os.path.join(Extension.sm_root, 'public', 'libudis86', "decode.c")]
 project.sources += [os.path.join(Extension.sm_root, 'public', 'libudis86', "itab.c")]
 project.compiler.defines += ['HAVE_STRING_H']
+project.compiler.defines += ['VERSION_SAFE_STEAM_API_INTERFACES']
+
   
 for sdk_name in Extension.sdks:
   sdk = Extension.sdks[sdk_name]
@@ -38,6 +40,11 @@ for sdk_name in Extension.sdks:
     os.path.join(sdk.path, 'public'),
     os.path.join(sdk.path, 'public', 'steam'),
   ]
+
+  if builder.target_platform == 'windows':
+    project.compiler.linkflags += [os.path.join(sdk.path, 'lib', 'public', 'steam_api.lib')]
+  elif builder.target_platform == 'linux':
+    project.compiler.linkflags += [os.path.join(sdk.path, 'lib', 'linux', 'libsteam_api.so')]
   
   binary = Extension.HL2Config(project, projectName + '.ext.' + sdk.ext, sdk)
 

@@ -50,22 +50,17 @@ void* g_pSteamSocketMgr = nullptr;
 IGameConfig* g_pGameConfig;
 int g_iSendToOffset;
 SH_DECL_MANUALHOOK5(Hook_RecvFrom, 0, 0, 0, int, int, char*, int, int, netadr_s*)
+SH_DECL_HOOK1_void(IServerGameDLL, GameServerSteamAPIActivated, SH_NOATTRIB, 0, bool);
 
 ICvar* g_pCvar = nullptr;
 IServer* g_pServer = nullptr;
 ISDKTools* g_pSDKTools = nullptr;
 IServerGameClients* serverClients = nullptr;
 
-ISteamGameServer *(*SteamAPI_SteamGameServer)();
-bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);
-uint64_t (*SteamAPI_ISteamGameServer_GetSteamID)(ISteamGameServer* self);
-SH_DECL_HOOK1_void(IServerGameDLL, GameServerSteamAPIActivated, SH_NOATTRIB, 0, bool);
-
 void (CALLING_CONVENTION *SendPacket)(void*, const char*, int, uint32_t*);
 bool (CALLING_CONVENTION *Filter_ShouldDiscard)(netadr_s*);
 
 bool g_bEnabled = false;
-bool g_bSteamWorksAPIActivated = false;
 
 ChallengeManager g_ChallengeManager;
 CHLTVServer** g_pHltvServer = nullptr;
@@ -95,6 +90,9 @@ DETOUR_DECL_MEMBER2(DetourFunc, bool, uint32_t*, adr, int, challenge)
 int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
 {
     if(!g_bEnabled)
+        RETURN_META_VALUE(MRES_IGNORED, 0);
+    
+    if(!SteamGameServer())  //Necessary interface is not ready yet
         RETURN_META_VALUE(MRES_IGNORED, 0);
     
     int host_info_show = g_pCvar->FindVar("host_info_show")->GetInt();
@@ -188,44 +186,6 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
 
 bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
-    ILibrary *pLibrary = libsys->OpenLibrary(
-#if defined _WIN32
-    "steam_api.dll"
-#else
-    "libsteam_api.so"
-#endif
-    , nullptr, 0);
-    if (pLibrary != nullptr)
-    {
-        const char* pSteamGameServerFuncName = "SteamAPI_SteamGameServer_v014";
-        const char* pBSecureFuncName = "SteamAPI_ISteamGameServer_BSecure";
-        const char* pGetSteamIDFuncName = "SteamAPI_ISteamGameServer_GetSteamID";
-    
-        SteamAPI_SteamGameServer = reinterpret_cast<ISteamGameServer *(*)()>(pLibrary->GetSymbolAddress(pSteamGameServerFuncName));
-        SteamAPI_ISteamGameServer_BSecure = reinterpret_cast<bool (*)(ISteamGameServer *self)>(pLibrary->GetSymbolAddress(pBSecureFuncName));
-        SteamAPI_ISteamGameServer_GetSteamID = reinterpret_cast<uint64_t (*)(ISteamGameServer *self)>(pLibrary->GetSymbolAddress(pGetSteamIDFuncName));
-
-        pLibrary->CloseLibrary();
-
-        if(SteamAPI_SteamGameServer == nullptr)
-        {
-            smutils->LogError(myself, "Failed to get %s function", pSteamGameServerFuncName);
-            return false;
-        }
-        
-        if(SteamAPI_ISteamGameServer_BSecure == nullptr)
-        {
-            smutils->LogError(myself, "Failed to get %s function", pBSecureFuncName);
-            return false;
-        }
-
-        if(SteamAPI_ISteamGameServer_GetSteamID == nullptr)
-        {
-            smutils->LogError(myself, "Failed to get %s function", pGetSteamIDFuncName);
-            return false;
-        }
-    }
-
     SH_ADD_HOOK(IServerGameDLL, GameServerSteamAPIActivated, gamedll, SH_MEMBER(this, &FakeQuery::Hook_GameServerSteamAPIActivated), true);
 
     char sConfError[256];
@@ -309,38 +269,36 @@ void FakeQuery::SDK_OnUnload()
 
 void FakeQuery::Hook_GameServerSteamAPIActivated(bool bActivated)
 {
-    if (bActivated && SteamAPI_SteamGameServer && SteamAPI_ISteamGameServer_BSecure)
+    if (!bActivated || !SteamGameServer())
     {
-        g_bSteamWorksAPIActivated = true;
+        smutils->LogError(myself, "Steam API is not active");
+        RETURN_META(MRES_IGNORED);
     }
 
     char error[256];
     if(!g_SymbolHelper.ParseFile("fakequeries.games", error, sizeof(error)))
     {
         smutils->LogError(myself, "Fail to parse fakequeries.games : %s", error);
-        return;
+        RETURN_META(MRES_IGNORED);
     }
     
     void* pFunc = g_SymbolHelper.GetValidateChallengeFuncPtr();
     if(!pFunc)
     {
         smutils->LogError(myself, "Look up ValidateChallengeFunc signature failed");
-        return;
+        RETURN_META(MRES_IGNORED);
     }
 
     *(void**)&SendPacket = g_SymbolHelper.GetSendPacketFuncPtr();
     if(!SendPacket)
     {
         smutils->LogError(myself, "Look up SendPacketFunc signature failed");
-        return;
+        RETURN_META(MRES_IGNORED);
     }
 
-    if(pFunc && SendPacket)
-    {
-        CDetourManager::Init(smutils->GetScriptingEngine(), g_pGameConfig);
-        g_pDetourFunc = DETOUR_CREATE_MEMBER(DetourFunc, pFunc);
-        g_pDetourFunc->EnableDetour();
-    }
+    CDetourManager::Init(smutils->GetScriptingEngine(), g_pGameConfig);
+    g_pDetourFunc = DETOUR_CREATE_MEMBER(DetourFunc, pFunc);
+    g_pDetourFunc->EnableDetour();
 
     RETURN_META(MRES_IGNORED);
 }

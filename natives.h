@@ -193,6 +193,4 @@ private:
     bool m_bDefaultEDF;
 };
 
-extern bool g_bSteamWorksAPIActivated;
-
 #endif // _INCLUDE_FAKEQUERIES_NATIVE_H_
