@@ -7,12 +7,8 @@ using namespace SourceMod;
 
 #ifdef _WIN32
     #define PLATFORM_STRING "windows"
-    #define LIB_PATH "bin\\steamclient.dll"
 #else
-    #include <dlfcn.h>
-    #include <link.h>
     #define PLATFORM_STRING "linux"
-    #define LIB_PATH "bin/steamclient.so"
 #endif
 
 //https://github.com/alliedmodders/sourcemod/blob/1fbe5e1daaee9ba44164078fe7f59d862786e612/core/logic/stringutil.cpp#L273
@@ -74,7 +70,7 @@ public:
     void* GetSendPacketFuncPtr()  { return m_pSendPacketFunc; }
 
 public://symbols
-    void* FindPatternFromBinary(const char* libName, const char* textValue)
+    void* FindPatternFromSteamClientBinary(const char* textValue)
     {
         char sig[512];
         size_t len = 0;
@@ -83,34 +79,8 @@ public://symbols
         if(len < 1)
             return nullptr;
         
-        return memutils->FindPattern(GetBaseAddrOfModule(libName), sig, len);
-    }
-
-    void* GetBaseAddrOfModule(const char* name)
-    {
-#ifdef _WIN32
-        HMODULE binary = nullptr;
-        if(!(GetModuleHandleEx(0, name, &binary) && binary))
-            return nullptr;
-        
-        MEMORY_BASIC_INFORMATION info;
-        if(!VirtualQuery(binary, &info, sizeof(info)))
-            return nullptr;
-        
-        void* ret = (void*)info.AllocationBase;
-
-        return ret;
-#else
-        void *binary = dlopen(name, RTLD_LAZY | RTLD_NOLOAD);
-        if(!binary)
-            return nullptr;
-        
-        void* ret = (void*)static_cast<const struct link_map *>(binary)->l_addr;
-        dlclose(binary);
-
-        return ret;
-#endif
-        return nullptr;
+        //vtable pointer points to the steamclient library, so don't need to get the base address of that module
+        return memutils->FindPattern(*(void**)SteamGameServer(), sig, len);
     }
 
 public: //ITextListener_SMC
@@ -133,7 +103,7 @@ public: //ITextListener_SMC
                     if(strcmp(key, PLATFORM_STRING) != 0)
                         break;
                     
-                    m_pValidateChallengeFunc = FindPatternFromBinary(LIB_PATH, value);
+                    m_pValidateChallengeFunc = FindPatternFromSteamClientBinary(value);
                     break;
                 }
             case MyParseState_SendPacketFunc:
@@ -141,7 +111,7 @@ public: //ITextListener_SMC
                     if(strcmp(key, PLATFORM_STRING) != 0)
                         break;
                     
-                    m_pSendPacketFunc = FindPatternFromBinary(LIB_PATH, value);
+                    m_pSendPacketFunc = FindPatternFromSteamClientBinary(value);
                     break;
                 }
             default : break;

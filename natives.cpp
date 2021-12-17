@@ -291,11 +291,7 @@ void CReturnA2sInfo::BuildCommunicationFrame()
         m_replyPacket.WriteShort(m_RealPort);
 
     if(extraData & S2A_EXTRA_DATA_HAS_STEAM_ID)
-    {
-        ISteamGameServer* pSteamClientGameServer = SteamAPI_SteamGameServer();
-        uint64_t steamID = SteamAPI_ISteamGameServer_GetSteamID(pSteamClientGameServer);
-        m_replyPacket.WriteLongLong(steamID);
-    }
+        m_replyPacket.WriteLongLong(SteamGameServer()->GetSteamID().ConvertToUint64());
 
     if(extraData & S2A_EXTRA_DATA_HAS_SPECTATOR_DATA)
     {
@@ -584,15 +580,7 @@ void CReturnA2sInfo::SetVacStatus(bool bVacStatus, bool bDefault)
 uint8_t CReturnA2sInfo::GetVacStatus()
 {
     if(m_bDefaultVacStatus)
-    {
-        if(g_bSteamWorksAPIActivated)
-        {
-            ISteamGameServer* pSteamClientGameServer = SteamAPI_SteamGameServer();
-            return SteamAPI_ISteamGameServer_BSecure(pSteamClientGameServer);
-        }
-        else
-            return 1;
-    }
+        return SteamGameServer()->BSecure();
     else
         return m_iVacStatus;
 }
