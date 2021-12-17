@@ -83,7 +83,8 @@ public://symbols
         if(len < 1)
             return nullptr;
         
-        return memutils->FindPattern(GetBaseAddrOfModule(libName), sig, len);
+        //vtable pointer points to the steamclient library, so don't need to get the base address of that module
+        return memutils->FindPattern(*(void**)SteamAPI_SteamGameServer(), sig, len);
     }
 
     void* GetBaseAddrOfModule(const char* name)

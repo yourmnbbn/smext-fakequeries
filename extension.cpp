@@ -278,32 +278,6 @@ bool FakeQuery::SDK_OnLoad(char *error, size_t maxlen, bool late)
         return false;
     }
 
-    if(!g_SymbolHelper.ParseFile("fakequeries.games", error, maxlen))
-        return false;
-    
-    void* pFunc = g_SymbolHelper.GetValidateChallengeFuncPtr();
-    if(!pFunc)
-    {
-        snprintf(error, maxlen, "Look up ValidateChallengeFunc signature failed");
-        return false;
-    }
-
-    *(void**)&SendPacket = g_SymbolHelper.GetSendPacketFuncPtr();
-    if(!SendPacket)
-    {
-        snprintf(error, maxlen, "Look up SendPacketFunc signature failed");
-        return false;
-    }
-
-    CDetourManager::Init(smutils->GetScriptingEngine(), g_pGameConfig);
-
-    g_pDetourFunc = DETOUR_CREATE_MEMBER(DetourFunc, pFunc);
-    if(!g_pDetourFunc){
-        snprintf(error, maxlen, "ValidateChallengeFunc detour could not be initialized ");
-        return false;
-    }
-    g_pDetourFunc->EnableDetour();
-
     sharesys->AddNatives(myself, g_ExtensionNatives);
     sharesys->RegisterLibrary(myself, "fakequeries");
     
@@ -338,6 +312,34 @@ void FakeQuery::Hook_GameServerSteamAPIActivated(bool bActivated)
     if (bActivated && SteamAPI_SteamGameServer && SteamAPI_ISteamGameServer_BSecure)
     {
         g_bSteamWorksAPIActivated = true;
+    }
+
+    char error[256];
+    if(!g_SymbolHelper.ParseFile("fakequeries.games", error, sizeof(error)))
+    {
+        smutils->LogError(myself, "Fail to parse fakequeries.games : %s", error);
+        return;
+    }
+    
+    void* pFunc = g_SymbolHelper.GetValidateChallengeFuncPtr();
+    if(!pFunc)
+    {
+        smutils->LogError(myself, "Look up ValidateChallengeFunc signature failed");
+        return;
+    }
+
+    *(void**)&SendPacket = g_SymbolHelper.GetSendPacketFuncPtr();
+    if(!SendPacket)
+    {
+        smutils->LogError(myself, "Look up SendPacketFunc signature failed");
+        return;
+    }
+
+    if(pFunc && SendPacket)
+    {
+        CDetourManager::Init(smutils->GetScriptingEngine(), g_pGameConfig);
+        g_pDetourFunc = DETOUR_CREATE_MEMBER(DetourFunc, pFunc);
+        g_pDetourFunc->EnableDetour();
     }
 
     RETURN_META(MRES_IGNORED);
