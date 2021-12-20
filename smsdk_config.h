@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"Fake Queries"
 #define SMEXT_CONF_DESCRIPTION	"Return fake A2S_INFO and AS2_PLAYER response"
-#define SMEXT_CONF_VERSION		"1.3.1"
+#define SMEXT_CONF_VERSION		"1.3.2"
 #define SMEXT_CONF_AUTHOR		"Yourmnbbn"
 #define SMEXT_CONF_URL			"https://github.com/yourmnbbn"
 #define SMEXT_CONF_LOGTAG		"Fake Queries"
