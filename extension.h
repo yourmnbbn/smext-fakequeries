@@ -68,10 +68,6 @@ extern CGlobalVars* gpGlobals;
 extern void* g_pSteamSocketMgr;
 extern int g_iSendToOffset;
 
-extern ISteamGameServer *(*SteamAPI_SteamGameServer)();
-extern bool (*SteamAPI_ISteamGameServer_BSecure)(ISteamGameServer *self);
-extern uint64_t (*SteamAPI_ISteamGameServer_GetSteamID)(ISteamGameServer* self);
-
 /**
  * @brief Sample implementation of the SDK Extension.
  * Note: Uncomment one of the pre-defined virtual functions in order to use it.
