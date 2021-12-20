@@ -95,12 +95,6 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
     if(!SteamGameServer())  //Necessary interface is not ready yet
         RETURN_META_VALUE(MRES_IGNORED, 0);
     
-    int host_info_show = g_pCvar->FindVar("host_info_show")->GetInt();
-
-    //A2S_INFO was disabled by server
-    if(host_info_show < 1)
-        RETURN_META_VALUE(MRES_IGNORED, 0);
-    
     int recvSize = META_RESULT_ORIG_RET(int);
     if(recvSize < 4)
         RETURN_META_VALUE(MRES_IGNORED, 0);
@@ -117,7 +111,7 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
             RETURN_META_VALUE(MRES_IGNORED, 0);
         }
         
-        switch(host_info_show)
+        switch(g_pCvar->FindVar("host_info_show")->GetInt())
         {
             case 2: //host_info_show 2 need challenge when requesting A2S_INFO
                 {
