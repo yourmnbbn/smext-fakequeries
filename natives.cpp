@@ -89,18 +89,13 @@ bool CReturnA2sPlayer::GetPlayerStatus(int iClientIndex, PlayerInfo_t& info)
 
 void CReturnA2sPlayer::BuildCommunicationFrame()
 {
-    int maxClients = g_pServer->GetNumClients();
     int iPlayerWritten = 0;
-    
+
     m_replyPacket.Reset();
-    m_TotalClientsCount = maxClients + (m_FakePlayers.size() > m_FakePlayerDisplayNum ? m_FakePlayerDisplayNum : m_FakePlayers.size());
-    
-    if(m_TotalClientsCount >= 64)
-        m_TotalClientsCount = 64;
 
     m_replyPacket.WriteLong(-1);        //0xFFFFFFFF
     m_replyPacket.WriteByte(68);        //A2S_PLAYER response header
-    m_replyPacket.WriteByte(m_TotalClientsCount > 64 ? 64 : m_TotalClientsCount);
+    m_replyPacket.WriteByte(GetTotalPlayersCount());
     
     //Loop real clients
     for(int i = 1; i <= playerhelpers->GetMaxClients(); i++)
@@ -157,6 +152,17 @@ void CReturnA2sPlayer::BuildEngineDefaultFrame()
     m_replyPacket.WriteFloat(Plat_FloatTime());
 }
 
+uint8_t CReturnA2sPlayer::GetTotalPlayersCount()
+{
+    int maxClients = g_pServer->GetNumClients();
+    int count = maxClients + (m_FakePlayers.size() > m_FakePlayerDisplayNum ? m_FakePlayerDisplayNum : m_FakePlayers.size());
+    
+    if(count >= 64)
+        count = 64;
+
+    return count;
+}
+
 void CReturnA2sInfo::ResetA2sInfo()
 {
     m_bDefaultPassWord = true;
@@ -174,6 +180,7 @@ void CReturnA2sInfo::ResetA2sInfo()
     m_bDefaultGameVersion = true;
     m_bDefaultServerTag = true;
     m_bDefaultEDF = true;
+    m_bInfoResponseAutoPlayerCount = false;
 }
 
 bool CReturnA2sInfo::ReadSteamINF()
@@ -470,7 +477,7 @@ void CReturnA2sInfo::SetNumClients(uint8_t iClientCount, bool bDefault)
 uint8_t CReturnA2sInfo::GetNumClients()
 {
     if(m_bDefaultNumClients)
-        return g_pServer->GetNumClients();
+        return m_bInfoResponseAutoPlayerCount ? g_ReturnA2sPlayer.GetTotalPlayersCount() : g_pServer->GetNumClients();
     else
         return m_iNumClients;
 }
@@ -645,6 +652,11 @@ uint8_t CReturnA2sInfo::GetEDF()
         return m_EDF;
 }
 
+void CReturnA2sInfo::SetInfoResponseAutoPlayerCount(bool bAuto)
+{
+    m_bInfoResponseAutoPlayerCount = bAuto;
+}
+
 static cell_t FQ_ToggleStatus(IPluginContext* pContext, const cell_t* params)
 {
     g_bEnabled = static_cast<bool>(params[1]);
@@ -800,6 +812,14 @@ static cell_t FQ_SetFakePlayerDisplayNum(IPluginContext* pContext, const cell_t*
     return 0;
 }
 
+static cell_t FQ_InfoResponseAutoPlayerCount(IPluginContext* pContext, const cell_t* params)
+{
+    g_ReturnA2sInfo.SetInfoResponseAutoPlayerCount(static_cast<bool>(params[1]));
+    
+    return 0;
+}
+
+
 const sp_nativeinfo_t g_ExtensionNatives[] =
 {
     { "FQ_ToggleStatus",                    FQ_ToggleStatus },
@@ -822,5 +842,6 @@ const sp_nativeinfo_t g_ExtensionNatives[] =
     { "FQ_RemoveAllFakePlayer",             FQ_RemoveAllFakePlayer },
     { "FQ_RemoveFakePlayer",                FQ_RemoveFakePlayer },
     { "FQ_SetFakePlayerDisplayNum",         FQ_SetFakePlayerDisplayNum },
+    { "FQ_InfoResponseAutoPlayerCount",     FQ_InfoResponseAutoPlayerCount },
     { nullptr,                              nullptr }
 };
