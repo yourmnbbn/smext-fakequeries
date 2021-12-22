@@ -476,8 +476,11 @@ void CReturnA2sInfo::SetNumClients(uint8_t iClientCount, bool bDefault)
 
 uint8_t CReturnA2sInfo::GetNumClients()
 {
+    if(m_bInfoResponseAutoPlayerCount)
+        return g_ReturnA2sPlayer.GetTotalPlayersCount();
+    
     if(m_bDefaultNumClients)
-        return m_bInfoResponseAutoPlayerCount ? g_ReturnA2sPlayer.GetTotalPlayersCount() : g_pServer->GetNumClients();
+        return g_pServer->GetNumClients();
     else
         return m_iNumClients;
 }

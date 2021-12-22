@@ -206,7 +206,7 @@ native void FQ_SetFakePlayerDisplayNum(int iDisplayNum);
 /**
  * Set whether the real players count in A2S_INFO response be automatically controlled by the
  * fake players you've added. By default this is false. 
- * Note that FQ_SetNumClients can override this.
+ * Note that this can override FQ_SetNumClients.
  *
  * @param bAuto               Self explanation.
  * @noreturn
