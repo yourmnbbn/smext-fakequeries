@@ -67,13 +67,14 @@ public:
     
     void ClearAllFakePlayer() { m_FakePlayers.clear();}
     
+    uint8_t GetTotalPlayersCount();
+
 private:
     //Get real client status
     bool GetPlayerStatus(int iClientIndex, PlayerInfo_t& info);
 
 private:
     uint8_t m_FakePlayerDisplayNum;
-    uint8_t m_TotalClientsCount;
     std::vector<PlayerInfo_t> m_FakePlayers;
 };
 
@@ -136,6 +137,8 @@ public:
     void SetEDF(uint8_t edf, bool bDefault = false);
     uint8_t GetEDF();  
 
+    void SetInfoResponseAutoPlayerCount(bool bAuto);
+
 private:
     
     //Real information
@@ -191,6 +194,8 @@ private:
 
     uint8_t m_EDF;
     bool m_bDefaultEDF;
+
+    bool m_bInfoResponseAutoPlayerCount;
 };
 
 #endif // _INCLUDE_FAKEQUERIES_NATIVE_H_

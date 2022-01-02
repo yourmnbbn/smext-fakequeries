@@ -197,6 +197,10 @@ class ExtensionConfig(object):
       cxx.cxxflags += ['-Wno-delete-non-virtual-dtor']
     if cxx.version >= 'gcc-4.8':
       cxx.cflags += ['-Wno-unused-result']
+    if cxx.version >= 'clang-10.0':
+      cxx.cxxflags += ['-Wno-implicit-int-float-conversion']
+    if cxx.version >= 'gcc-8.0':
+      cxx.cxxflags += ['-Wno-class-memaccess']
 
     if have_clang:
       cxx.cxxflags += ['-Wno-implicit-exception-spec-mismatch']

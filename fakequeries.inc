@@ -203,7 +203,15 @@ native void FQ_RemoveAllFakePlayer();
  */
 native void FQ_SetFakePlayerDisplayNum(int iDisplayNum);
 
-
+/**
+ * Set whether the real players count in A2S_INFO response be automatically controlled by the
+ * fake players you've added. By default this is false. 
+ * Note that this can override FQ_SetNumClients.
+ *
+ * @param bAuto               Self explanation.
+ * @noreturn
+ */
+native void FQ_InfoResponseAutoPlayerCount(bool bAuto);
 
 //Do not edit below this
 public Extension __ext_fakequeries = 
@@ -244,5 +252,6 @@ public void __ext_fakequeries_SetNTVOptional()
     MarkNativeAsOptional("FQ_RemoveFakePlayer");
     MarkNativeAsOptional("FQ_RemoveAllFakePlayer");
     MarkNativeAsOptional("FQ_SetFakePlayerDisplayNum");
+    MarkNativeAsOptional("FQ_InfoResponseAutoPlayerCount");
 }
 #endif

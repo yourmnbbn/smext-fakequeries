@@ -95,12 +95,6 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
     if(!SteamGameServer())  //Necessary interface is not ready yet
         RETURN_META_VALUE(MRES_IGNORED, 0);
     
-    int host_info_show = g_pCvar->FindVar("host_info_show")->GetInt();
-
-    //A2S_INFO was disabled by server
-    if(host_info_show < 1)
-        RETURN_META_VALUE(MRES_IGNORED, 0);
-    
     int recvSize = META_RESULT_ORIG_RET(int);
     if(recvSize < 4)
         RETURN_META_VALUE(MRES_IGNORED, 0);
@@ -117,7 +111,7 @@ int Hook_RecvFrom(int s, char* buf, int len, int flags, netadr_s* from)
             RETURN_META_VALUE(MRES_IGNORED, 0);
         }
         
-        switch(host_info_show)
+        switch(g_pCvar->FindVar("host_info_show")->GetInt())
         {
             case 2: //host_info_show 2 need challenge when requesting A2S_INFO
                 {
@@ -265,6 +259,9 @@ void FakeQuery::SDK_OnUnload()
     SH_REMOVE_MANUALHOOK(Hook_RecvFrom, g_pSteamSocketMgr, SH_STATIC(Hook_RecvFrom), true);
     gameconfs->CloseGameConfigFile(g_pGameConfig);
     SH_REMOVE_HOOK(IServerGameDLL, GameServerSteamAPIActivated, gamedll, SH_MEMBER(this, &FakeQuery::Hook_GameServerSteamAPIActivated), true);
+
+    if(g_pDetourFunc)
+        g_pDetourFunc->DisableDetour();
 }
 
 void FakeQuery::Hook_GameServerSteamAPIActivated(bool bActivated)
