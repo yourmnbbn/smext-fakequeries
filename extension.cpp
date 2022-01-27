@@ -268,7 +268,12 @@ void FakeQuery::Hook_GameServerSteamAPIActivated(bool bActivated)
 {
     if (!bActivated || !SteamGameServer())
     {
-        smutils->LogError(myself, "Steam API is not active");
+        RETURN_META(MRES_IGNORED);
+    }
+
+    //Prevent error in the log when this is called multiple times.
+    if(g_pDetourFunc)
+    {
         RETURN_META(MRES_IGNORED);
     }
 
