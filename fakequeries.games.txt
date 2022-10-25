@@ -26,12 +26,12 @@
 
                 "windows" 
                 {
-                    "read"		"5736"
+                    "read"		"5816"
                 }
                 
                 "linux"
                 {
-                    "read"		"2592"
+                    "read"		"2375"
                 }
             }
         }
@@ -55,7 +55,7 @@
             {
                 "library"   "engine"
                 "linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x3C\xA1\x2A\x2A\x2A\x2A\x8B\x75\x08"
-                "windows"   "\x55\x8B\xEC\x83\xEC\x08\x53\x56\x8B\xF1\x8B\x0D\x2A\x2A\x2A\x2A\x81\xF9\x2A\x2A\x2A\x2A"
+                "windows"   "\x55\x8B\xEC\x8B\x15\x2A\x2A\x2A\x2A\x83\xEC\x08\x53\x56\x8B\xF1"
             }
 
             "ValidateChallengeFunc" //"m_bHeartbeatsActive"
