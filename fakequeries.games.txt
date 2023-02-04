@@ -15,7 +15,7 @@
                 
                 "linux"
                 {
-                    "read"      "38"
+                    "read"      "50"
                     "read"      "0"
                 }
             }
@@ -31,7 +31,7 @@
                 
                 "linux"
                 {
-                    "read"		"2375"
+                    "read"		"819"
                 }
             }
         }
@@ -40,21 +40,21 @@
             "NET_ReceiveRawPacket"  // Str: "%s sent invalid %d-byte message (max is %d)\n"
             {
                 "library"   "engine"
-                "linux"     "\x55\x89\xE5\x57\x89\xCF\x56\x53\x81\xEC\xCC\x00\x00\x00"
+                "linux"     "\x55\x89\xE5\x57\x89\xD7\x56\x53\x81\xEC\xB4\x00\x00\x00"
                 "windows"   "\x55\x8B\xEC\x81\xEC\x5C\x03\x00\x00\x53"
             }
 
             "CBaseServer::ProcessConnectionlessPacket"  //Str: "-enablelegacypackets"
             {
                 "library"   "engine"
-                "linux"     "\x55\x89\xE5\x57\x56\x53\x81\xEC\x5C\x11\x00\x00"
+                "linux"     "\x55\x89\xE5\x57\x56\x53\x81\xEC\xE8\x0A\x00\x00"
                 "windows"   "\x55\x8B\xEC\xB8\xCC\x12\x00\x00"
             }
 
             "Filter_ShouldDiscard"  //Str: "%cBanned by server\n"
             {
                 "library"   "engine"
-                "linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x3C\xA1\x2A\x2A\x2A\x2A\x8B\x75\x08"
+                "linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x1C\xA1\x2A\x2A\x2A\x2A\x3D\x2A\x2A\x2A\x2A\x0F\x84\x1F\x02\x00\x00"
                 "windows"   "\x55\x8B\xEC\x8B\x15\x2A\x2A\x2A\x2A\x83\xEC\x08\x53\x56\x8B\xF1"
             }
 
@@ -63,7 +63,7 @@
                 //!!!THIS SIG IS FROM THE "steamclient" LIBRARY, NOT "engine" LIBRARY!!!
                 //Avoid error 'Unrecognized library "steamclient"' every time the extension is loaded.
                 "library"   "engine"
-                "linux"     "\x55\x57\x56\x53\xE8\x2A\x2A\x2A\x2A\x81\xC3\x2A\x2A\x2A\x2A\x83\xEC\x5C\x65\xA1\x14\x00\x00\x00\x89\x44\x24\x4C\x31\xC0\x8B\x6C\x24\x70\x8B\x7C\x24\x74\x80\xBD\x2A\x2A\x2A\x2A\x00"
+                "linux"     "\x55\x57\x56\x53\xE8\x2A\x2A\x2A\x2A\x81\xC3\x2A\x2A\x2A\x2A\x83\xEC\x2A\x65\xA1\x14\x00\x00\x00\x89\x44\x24\x2C\x31\xC0\x8B\x6C\x24\x50\x8B\x7C\x24\x54"
                 "windows"   "\x55\x8B\xEC\x83\xEC\x24\x56\x57\x8B\xF9\x80\xBF\x2A\x2A\x2A\x2A\x00"
             }
 
@@ -72,7 +72,7 @@
                 //!!!THIS SIG IS FROM THE "steamclient" LIBRARY, NOT "engine" LIBRARY!!!
                 //Avoid error "Unrecognized library "steamclient"" every time the extension is loaded.
                 "library"   "engine"
-                "linux"     "\x55\x57\x56\x53\xE8\x2A\x2A\x2A\x2A\x81\xC3\x2A\x2A\x2A\x2A\x83\xEC\x3C\x8B\x74\x24\x50\x8B\x7C\x24\x5C\x8B\xAE"
+                "linux"     "\x55\x57\x56\x53\xE8\x2A\x2A\x2A\x2A\x81\xC3\x2A\x2A\x2A\x2A\x83\xEC\x2A\x8B\x7C\x24\x40\x8B\x74\x24\x4C"
                 "windows"   "\x55\x8B\xEC\x51\x53\x56\x57\x8B\xD9\xE8\x2A\x2A\x2A\x2A\x39\x83"
             }
         }
